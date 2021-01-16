@@ -153,7 +153,7 @@ namespace UniversalDownloaderPlatform.Engine
                 catch (Exception ex)
                 {
                     _logger.Fatal($"Unable to create download directory: {ex}");
-                    throw new PatreonDownloaderException("Unable to create download directory", ex);
+                    throw new UniversalDownloaderPlatformException("Unable to create download directory", ex);
                 }
 
                 _logger.Debug("Starting crawler");

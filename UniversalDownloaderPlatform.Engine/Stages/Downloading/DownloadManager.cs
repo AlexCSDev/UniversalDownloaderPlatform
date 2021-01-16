@@ -7,6 +7,7 @@ using NLog;
 using UniversalDownloaderPlatform.Common.Interfaces;
 using UniversalDownloaderPlatform.Common.Interfaces.Plugins;
 using UniversalDownloaderPlatform.Common.Events;
+using UniversalDownloaderPlatform.Common.Exceptions;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
 using UniversalDownloaderPlatform.Engine.Exceptions;
 using UniversalDownloaderPlatform.Engine.Helpers;
@@ -43,7 +44,7 @@ namespace UniversalDownloaderPlatform.Engine.Stages.Downloading
                     cancellationToken.ThrowIfCancellationRequested();
 
                     int entryPos = i;
-                    Task task = Task.Factory.StartNew(async () =>
+                    Task task = Task.Run(async () =>
                     {
                         try
                         {
@@ -74,7 +75,7 @@ namespace UniversalDownloaderPlatform.Engine.Stages.Downloading
                             }
                             catch (Exception ex)
                             {
-                                throw new PatreonDownloaderException(
+                                throw new UniversalDownloaderPlatformException(
                                     $"Error while downloading {entry.Url}: {ex.Message}", ex);
                             }
                         }
@@ -88,6 +89,7 @@ namespace UniversalDownloaderPlatform.Engine.Stages.Downloading
                 }
 
                 await Task.WhenAll(tasks);
+                _logger.Debug("Finished all tasks");
             }
         }
 

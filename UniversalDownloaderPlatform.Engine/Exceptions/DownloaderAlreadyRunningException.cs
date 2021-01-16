@@ -6,9 +6,9 @@ namespace UniversalDownloaderPlatform.Engine.Exceptions
 {
     /// <summary>
     /// Thrown when there is an attempt to start download on instance of
-    /// PatreonDownloader which is already downloading something
+    /// Universal Downloader Platform which is already downloading something
     /// </summary>
-    public sealed class DownloaderAlreadyRunningException : PatreonDownloaderException
+    public sealed class DownloaderAlreadyRunningException : UniversalDownloaderPlatformException
     {
         public DownloaderAlreadyRunningException() { }
         public DownloaderAlreadyRunningException(string message) : base(message) { }

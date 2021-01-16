@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using NLog;
@@ -31,6 +32,14 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                 throw new ArgumentException("Argument cannot be null or empty", nameof(url));
             if(string.IsNullOrEmpty(path))
                 throw new ArgumentException("Argument cannot be null or empty", nameof(path));
+
+            await DownloadFileInternal(url, path, overwrite);
+        }
+
+        private async Task DownloadFileInternal(string url, string path, bool overwrite, int retry = 0)
+        {
+            if(retry >= 5)
+                throw new Exception($"Retry limit reached");
 
             long remoteFileSize = -1;
             bool isFilesIdentical = false;
@@ -74,7 +83,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                     }
                 }
 
-                if(!isFilesIdentical && !overwrite)
+                if (!isFilesIdentical && !overwrite)
                     throw new DownloadException($"File {path} already exists");
                 else if (isFilesIdentical && !overwrite)
                 {
@@ -93,15 +102,42 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                         await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
                     {
                         if (!responseMessage.IsSuccessStatusCode)
-                            throw new DownloadException($"Server returned {responseMessage.StatusCode}");
+                        {
+                            switch (responseMessage.StatusCode)
+                            {
+                                case HttpStatusCode.Unauthorized:
+                                case HttpStatusCode.Forbidden:
+                                case HttpStatusCode.NotFound:
+                                case HttpStatusCode.MethodNotAllowed:
+                                case HttpStatusCode.Gone:
+                                    throw new Exception($"Error status code returned: {responseMessage.StatusCode}");
+                            }
 
+                            _logger.Debug($"{url} returned status code {responseMessage.StatusCode}, retrying ({4 - retry} retries left)...");
+                            await DownloadFileInternal(url, path, overwrite, retry + 1);
+                            return;
+                        }
+
+                        _logger.Debug($"Starting download: {url}");
                         using (Stream contentStream = await responseMessage.Content.ReadAsStreamAsync(),
                             stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 4096, true))
                         {
-                            _logger.Debug($"Starting download: {url}");
-                            await contentStream.CopyToAsync(stream);
-                            _logger.Debug($"Finished download: {url}");
+                            await contentStream.CopyToAsync(stream, 4096);
                         }
+                        _logger.Debug($"Finished download: {url}");
+
+                        FileInfo fileInfo = new FileInfo(path);
+                        long fileSize = fileInfo.Length;
+                        fileInfo = null;
+
+                        if (fileSize != remoteFileSize)
+                        {
+                            _logger.Warn($"Downloaded file size differs from the size returned by server. Local size: {fileSize}, remote size: {remoteFileSize}. File {url} will be redownloaded.");
+                            File.Delete(path);
+                            await DownloadFileInternal(url, path, overwrite, retry + 1);
+                            return;
+                        }
+                        _logger.Debug($"File size check passed for: {url}");
                     }
                 }
             }
@@ -115,13 +151,46 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
         {
             if(string.IsNullOrEmpty(url))
                 throw new ArgumentException("Argument cannot be null or empty", nameof(url));
+
+            return await DownloadStringInternal(url);
+        }
+
+        private async Task<string> DownloadStringInternal(string url, int retry = 0)
+        {
+            if (retry >= 5)
+            {
+                throw new Exception("Retries limit reached");
+            }
             try
             {
-                return await _httpClient.GetStringAsync(url);
+                using (var request = new HttpRequestMessage(HttpMethod.Get, url))
+                {
+                    using (HttpResponseMessage responseMessage =
+                        await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
+                    {
+                        if (!responseMessage.IsSuccessStatusCode)
+                        {
+                            switch (responseMessage.StatusCode)
+                            {
+                                case HttpStatusCode.Unauthorized:
+                                case HttpStatusCode.Forbidden:
+                                case HttpStatusCode.NotFound:
+                                case HttpStatusCode.MethodNotAllowed:
+                                case HttpStatusCode.Gone:
+                                    throw new Exception($"Error status code returned: {responseMessage.StatusCode}");
+                            }
+
+                            _logger.Debug($"{url} returned status code {responseMessage.StatusCode}, retrying ({4 - retry} retries left)...");
+                            return await DownloadStringInternal(url, retry + 1);
+                        }
+
+                        return await responseMessage.Content.ReadAsStringAsync();
+                    }
+                }
             }
             catch (Exception ex)
             {
-                throw new DownloadException($"Unable to download from {url}: {ex.Message}", ex);
+                throw new DownloadException($"Unable to retrieve data from {url}: {ex.Message}", ex);
             }
         }
     }
