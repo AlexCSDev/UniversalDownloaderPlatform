@@ -9,6 +9,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UniversalDownloaderPlatform
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UniversalDownloaderPlatform.DefaultImplementations", "UniversalDownloaderPlatform.DefaultImplementations\UniversalDownloaderPlatform.DefaultImplementations.csproj", "{A58274CC-BF06-4A49-9808-17A32AF64B1E}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UniversalDownloaderPlatform.GoogleDriveDownloader", "UniversalDownloaderPlatform.GoogleDriveDownloader\UniversalDownloaderPlatform.GoogleDriveDownloader.csproj", "{045E272F-2FA9-4AB1-B752-633DFBE56D8B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UniversalDownloaderPlatform.MegaDownloader", "UniversalDownloaderPlatform.MegaDownloader\UniversalDownloaderPlatform.MegaDownloader.csproj", "{36537110-28C0-4CB1-B581-9D4AE475D5D7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +31,14 @@ Global
 		{A58274CC-BF06-4A49-9808-17A32AF64B1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A58274CC-BF06-4A49-9808-17A32AF64B1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A58274CC-BF06-4A49-9808-17A32AF64B1E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{045E272F-2FA9-4AB1-B752-633DFBE56D8B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{045E272F-2FA9-4AB1-B752-633DFBE56D8B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{045E272F-2FA9-4AB1-B752-633DFBE56D8B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{045E272F-2FA9-4AB1-B752-633DFBE56D8B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{36537110-28C0-4CB1-B581-9D4AE475D5D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{36537110-28C0-4CB1-B581-9D4AE475D5D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{36537110-28C0-4CB1-B581-9D4AE475D5D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{36537110-28C0-4CB1-B581-9D4AE475D5D7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

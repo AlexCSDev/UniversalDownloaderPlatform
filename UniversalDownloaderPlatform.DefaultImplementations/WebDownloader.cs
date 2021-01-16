@@ -55,7 +55,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
 
             if (File.Exists(path))
             {
-                if (remoteFileSize > -1)
+                if (remoteFileSize > 0)
                 {
                     _logger.Debug($"File {path} exists, size will be checked");
                     try
@@ -96,6 +96,17 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
 
             try
             {
+                //warning: returns '' in drive's root
+                if (!Directory.Exists(path))
+                    Directory.CreateDirectory(new FileInfo(path).DirectoryName);
+            }
+            catch (Exception ex)
+            {
+                throw new DownloadException($"Unable to create directory for file {path}", ex);
+            }
+
+            try
+            {
                 using (var request = new HttpRequestMessage(HttpMethod.Get, url))
                 {
                     using (HttpResponseMessage responseMessage =
@@ -130,7 +141,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                         long fileSize = fileInfo.Length;
                         fileInfo = null;
 
-                        if (fileSize != remoteFileSize)
+                        if (remoteFileSize > 0 && fileSize != remoteFileSize)
                         {
                             _logger.Warn($"Downloaded file size differs from the size returned by server. Local size: {fileSize}, remote size: {remoteFileSize}. File {url} will be redownloaded.");
                             File.Delete(path);

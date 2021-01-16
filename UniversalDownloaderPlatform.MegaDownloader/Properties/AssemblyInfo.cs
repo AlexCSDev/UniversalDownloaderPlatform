@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Universal Downloader Platform Common Classes Library")]
+[assembly: AssemblyTitle("Universal Downloader Platform Mega.nz Plugin")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Universal Downloader Platform")]
-[assembly: AssemblyCopyright("Copyright 2019-2021 Aleksey Tsutsey & Contributors")]
+[assembly: AssemblyCopyright("Copyright 2021 Aleksey Tsutsey & Contributors")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("a7068eea-6bba-4482-9aa9-d1c03f172a26")]
+[assembly: Guid("0f883da3-d59b-4f79-a380-07f8a13eadcd")]
 
 // Version information for an assembly consists of the following four values:
 //

@@ -5,7 +5,7 @@ using UniversalDownloaderPlatform.DefaultImplementations.Interfaces;
 
 namespace UniversalDownloaderPlatform.DefaultImplementations
 {
-    internal class RemoteFileSizeChecker : IRemoteFileSizeChecker
+    public class RemoteFileSizeChecker : IRemoteFileSizeChecker
     {
         public async Task<long> GetRemoteFileSize(string url)
         {

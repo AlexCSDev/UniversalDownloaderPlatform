@@ -2,21 +2,17 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.29" />
-    <PackageReference Include="Ninject" Version="3.3.4" />
+    <PackageReference Include="Google.Apis.Drive.v3" Version="1.49.0.2117" />
     <PackageReference Include="NLog" Version="4.7.6" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\UniversalDownloaderPlatform.Common\UniversalDownloaderPlatform.Common.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Interfaces\" />
   </ItemGroup>
 
 </Project>

@@ -11,20 +11,23 @@ using UniversalDownloaderPlatform.Common.Exceptions;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
 using UniversalDownloaderPlatform.Engine.Exceptions;
 using UniversalDownloaderPlatform.Engine.Helpers;
+using UniversalDownloaderPlatform.Engine.Interfaces;
 
 namespace UniversalDownloaderPlatform.Engine.Stages.Downloading
 {
     internal sealed class DownloadManager : IDownloadManager
     {
         private readonly IPluginManager _pluginManager;
+        private readonly ICrawledUrlProcessor _crawledUrlProcessor;
 
         private readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
         public event EventHandler<FileDownloadedEventArgs> FileDownloaded;
 
-        public DownloadManager(IPluginManager pluginManager)
+        public DownloadManager(IPluginManager pluginManager, ICrawledUrlProcessor crawledUrlProcessor)
         {
             _pluginManager = pluginManager ?? throw new ArgumentNullException(nameof(pluginManager));
+            _crawledUrlProcessor = crawledUrlProcessor ?? throw new ArgumentNullException(nameof(crawledUrlProcessor));
         }
 
         public async Task Download(List<ICrawledUrl> crawledUrls, string downloadDirectory, CancellationToken cancellationToken)
@@ -61,6 +64,12 @@ namespace UniversalDownloaderPlatform.Engine.Stages.Downloading
 
                             try
                             {
+                                _logger.Debug($"Calling url processor for: {entry.Url}");
+                                await _crawledUrlProcessor.ProcessCrawledUrl(entry, downloadDirectory);
+
+                                if (string.IsNullOrWhiteSpace(entry.DownloadPath))
+                                    throw new DownloadException($"Download path is not filled for {entry.Url}");
+
                                 await _pluginManager.DownloadCrawledUrl(entry, downloadDirectory);
                                 OnFileDownloaded(new FileDownloadedEventArgs(entry.Url, crawledUrls.Count));
                             }

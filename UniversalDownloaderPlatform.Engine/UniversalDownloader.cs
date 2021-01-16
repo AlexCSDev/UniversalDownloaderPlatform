@@ -17,10 +17,11 @@ using UniversalDownloaderPlatform.Engine.Exceptions;
 using UniversalDownloaderPlatform.Engine.Stages.Downloading;
 using UniversalDownloaderPlatform.Common.Interfaces;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
+using UniversalDownloaderPlatform.Engine.Interfaces;
 
 namespace UniversalDownloaderPlatform.Engine
 {
-    public sealed class UniversalDownloader : IUniversalDownloader, IDisposable
+    public sealed class UniversalDownloader : IDisposable
     {
         private readonly IPluginManager _pluginManager;
         private readonly IDownloadManager _downloadManager;
@@ -93,19 +94,14 @@ namespace UniversalDownloaderPlatform.Engine
         /// </summary>
         /// <param name="url">Url of the creator's page</param>
         /// <param name="settings">Downloader settings, will be set to default values if not provided</param>
-        public async Task Download(string url, PatreonDownloaderSettings settings = null)
+        public async Task Download(string url)
         {
             if(string.IsNullOrEmpty(url))
                 throw new ArgumentException("Argument cannot be null or empty", nameof(url));
 
             url = url.ToLower(CultureInfo.InvariantCulture);
 
-            settings = settings ?? new PatreonDownloaderSettings();
-
-            string downloadDirectory = settings.DownloadDirectory;
-
-            settings.Consumed = true;
-            _logger.Debug($"Patreon downloader settings: {settings}");
+            string downloadDirectory = null; //todo: allow passing download directory and other settings
 
             try
             {

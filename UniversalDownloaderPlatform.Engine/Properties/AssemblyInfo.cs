@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("Patreon Downloader Engine Library")]
+[assembly: AssemblyTitle("Universal Downloader Platform Engine Library")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("Patreon Downloader")]
+[assembly: AssemblyProduct("Universal Downloader Platform")]
 [assembly: AssemblyCopyright("Copyright 2019-2021 Aleksey Tsutsey & Contributors")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

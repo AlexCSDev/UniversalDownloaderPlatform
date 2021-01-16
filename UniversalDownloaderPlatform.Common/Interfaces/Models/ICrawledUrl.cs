@@ -4,5 +4,9 @@
     {
         string Url { get; set; }
         string Filename { get; set; }
+        /// <summary>
+        /// Download path relative to the download folder
+        /// </summary>
+        string DownloadPath { get; set; }
     }
 }
