@@ -38,8 +38,15 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
 
         private async Task DownloadFileInternal(string url, string path, bool overwrite, int retry = 0)
         {
-            if(retry >= 5)
-                throw new Exception($"Retry limit reached");
+            if (retry > 0)
+            {
+                if (retry >= 5)
+                {
+                    throw new Exception("Retries limit reached");
+                }
+
+                await Task.Delay(retry * 2 * 1000);
+            }
 
             long remoteFileSize = -1;
             bool isFilesIdentical = false;
@@ -116,6 +123,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                         {
                             switch (responseMessage.StatusCode)
                             {
+                                //todo: configure via config?
                                 case HttpStatusCode.Unauthorized:
                                 case HttpStatusCode.Forbidden:
                                 case HttpStatusCode.NotFound:
@@ -124,8 +132,10 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                                     throw new WebException($"Error status code returned: {responseMessage.StatusCode}");
                             }
 
-                            _logger.Debug($"{url} returned status code {responseMessage.StatusCode}, retrying ({4 - retry} retries left)...");
-                            await DownloadFileInternal(url, path, overwrite, retry + 1);
+                            retry++;
+
+                            _logger.Debug($"{url} returned status code {responseMessage.StatusCode}, retrying in {retry * 2} seconds ({5 - retry} retries left)...");
+                            await DownloadFileInternal(url, path, overwrite, retry);
                             return;
                         }
 
@@ -144,8 +154,12 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                         if (remoteFileSize > 0 && fileSize != remoteFileSize)
                         {
                             _logger.Warn($"Downloaded file size differs from the size returned by server. Local size: {fileSize}, remote size: {remoteFileSize}. File {url} will be redownloaded.");
+                            
                             File.Delete(path);
-                            await DownloadFileInternal(url, path, overwrite, retry + 1);
+
+                            retry++;
+
+                            await DownloadFileInternal(url, path, overwrite, retry);
                             return;
                         }
                         _logger.Debug($"File size check passed for: {url}");
@@ -168,10 +182,16 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
 
         private async Task<string> DownloadStringInternal(string url, int retry = 0)
         {
-            if (retry >= 5)
+            if (retry > 0)
             {
-                throw new Exception("Retries limit reached");
+                if (retry >= 5)
+                {
+                    throw new Exception("Retries limit reached");
+                }
+
+                await Task.Delay(retry * 2 * 1000);
             }
+
             try
             {
                 using (var request = new HttpRequestMessage(HttpMethod.Get, url))
@@ -191,8 +211,10 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                                     throw new WebException($"Error status code returned: {responseMessage.StatusCode}");
                             }
 
-                            _logger.Debug($"{url} returned status code {responseMessage.StatusCode}, retrying ({4 - retry} retries left)...");
-                            return await DownloadStringInternal(url, retry + 1);
+                            retry++;
+
+                            _logger.Debug($"{url} returned status code {responseMessage.StatusCode}, retrying in {retry * 2} seconds ({5 - retry} retries left)...");
+                            return await DownloadStringInternal(url, retry);
                         }
 
                         return await responseMessage.Content.ReadAsStringAsync();
