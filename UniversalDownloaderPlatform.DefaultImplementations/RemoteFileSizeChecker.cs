@@ -32,7 +32,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
 
             try
             {
-                using (HttpWebResponse webResponse = (HttpWebResponse) (await webRequest.GetResponseAsync())) //todo: error status code throws exception
+                using (HttpWebResponse webResponse = (HttpWebResponse) (await webRequest.GetResponseAsync()))
                 {
                     if (!IsSuccessStatusCode(webResponse.StatusCode))
                     {
