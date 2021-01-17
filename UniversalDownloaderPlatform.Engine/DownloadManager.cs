@@ -71,6 +71,8 @@ namespace UniversalDownloaderPlatform.Engine.Stages.Downloading
                                     throw new DownloadException($"Download path is not filled for {entry.Url}");
 
                                 await _pluginManager.DownloadCrawledUrl(entry, downloadDirectory);
+
+                                entry.IsDownloaded = true;
                                 OnFileDownloaded(new FileDownloadedEventArgs(entry.Url, crawledUrls.Count));
                             }
                             catch (DownloadException ex)

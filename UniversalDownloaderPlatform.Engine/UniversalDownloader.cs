@@ -27,6 +27,7 @@ namespace UniversalDownloaderPlatform.Engine
         private readonly IDownloadManager _downloadManager;
         private readonly IPageCrawler _pageCrawler;
         private readonly ICrawlTargetInfoRetriever _crawlTargetInfoRetriever;
+        private readonly ICrawlResultsExporter _crawlResultsExporter;
         private readonly IKernel _kernel;
 
         private readonly SemaphoreSlim _initializationSemaphore;
@@ -82,6 +83,11 @@ namespace UniversalDownloaderPlatform.Engine
             _logger.Debug("Initializing download manager");
             _downloadManager = _kernel.Get<IDownloadManager>();
             _downloadManager.FileDownloaded += DownloadManagerOnFileDownloaded;
+
+            _logger.Debug("Initializing crawl results exporter");
+            _crawlResultsExporter = _kernel.TryGet<ICrawlResultsExporter>();
+            if (_crawlResultsExporter == null)
+                _logger.Debug("Crawl results exporter not provided");
 
             OnStatusChanged(new DownloaderStatusChangedEventArgs(DownloaderStatus.Ready));
         }
@@ -171,6 +177,13 @@ namespace UniversalDownloaderPlatform.Engine
                 _logger.Debug("Starting downloader");
                 OnStatusChanged(new DownloaderStatusChangedEventArgs(DownloaderStatus.Downloading));
                 await _downloadManager.Download(crawledUrls, downloadDirectory, _cancellationTokenSource.Token);
+
+                if (_crawlResultsExporter != null)
+                {
+                    _logger.Debug("Exporting crawl results");
+                    OnStatusChanged(new DownloaderStatusChangedEventArgs(DownloaderStatus.ExportingCrawlResults));
+                    await _crawlResultsExporter.ExportCrawlResults(crawlTargetInfo, crawledUrls);
+                }
 
                 _logger.Debug("Finished downloading");
                 OnStatusChanged(new DownloaderStatusChangedEventArgs(DownloaderStatus.Done));

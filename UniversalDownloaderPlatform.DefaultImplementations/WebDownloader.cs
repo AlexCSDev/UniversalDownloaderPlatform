@@ -121,7 +121,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                                 case HttpStatusCode.NotFound:
                                 case HttpStatusCode.MethodNotAllowed:
                                 case HttpStatusCode.Gone:
-                                    throw new Exception($"Error status code returned: {responseMessage.StatusCode}");
+                                    throw new WebException($"Error status code returned: {responseMessage.StatusCode}");
                             }
 
                             _logger.Debug($"{url} returned status code {responseMessage.StatusCode}, retrying ({4 - retry} retries left)...");
@@ -188,7 +188,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                                 case HttpStatusCode.NotFound:
                                 case HttpStatusCode.MethodNotAllowed:
                                 case HttpStatusCode.Gone:
-                                    throw new Exception($"Error status code returned: {responseMessage.StatusCode}");
+                                    throw new WebException($"Error status code returned: {responseMessage.StatusCode}");
                             }
 
                             _logger.Debug($"{url} returned status code {responseMessage.StatusCode}, retrying ({4 - retry} retries left)...");

@@ -10,5 +10,6 @@ namespace UniversalDownloaderPlatform.DefaultImplementations.Models
         public string Url { get; set; }
         public string Filename { get; set; }
         public string DownloadPath { get; set; }
+        public bool IsDownloaded { get; set; }
     }
 }

@@ -7,6 +7,7 @@
         RetrievingCampaignInformation,
         Crawling,
         Downloading,
+        ExportingCrawlResults,
         Done
     }
 }
