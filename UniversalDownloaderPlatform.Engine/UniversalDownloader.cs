@@ -50,14 +50,14 @@ namespace UniversalDownloaderPlatform.Engine
 
         // TODO: Implement cancellation token
         /// <summary>
-        /// Create a new PatreonDownloader
+        /// Create a new UniversalDownloader
         /// </summary>
         /// <param name="ninjectModule">Ninject module containing all required custom bindings (refer to documentation for details)</param>
         public UniversalDownloader(INinjectModule ninjectModule)
         {
             _initializationSemaphore = new SemaphoreSlim(1, 1);
 
-            _logger.Debug($"Initializing PatreonDownloader...");
+            _logger.Debug($"Initializing UniversalDownloader...");
 
             _logger.Debug("Initializing ninject kernel");
             _kernel = new StandardKernel(new MainModule());
@@ -76,9 +76,6 @@ namespace UniversalDownloaderPlatform.Engine
             _pageCrawler.NewCrawledUrl += PageCrawlerOnNewCrawledUrl;
             _pageCrawler.CrawlerMessage += PageCrawlerOnCrawlerMessage;
 
-            _logger.Debug("Binding default IPlugin");
-            //_kernel.Bind<IPlugin>().to.WhenInjectedInto<IPluginManager>();
-
             _logger.Debug("Initializing plugin manager");
             _pluginManager = _kernel.Get<IPluginManager>();
 
@@ -90,18 +87,33 @@ namespace UniversalDownloaderPlatform.Engine
         }
 
         /// <summary>
+        /// Download specified creator into default download directory
+        /// </summary>
+        /// <param name="url">Url of the creator's page</param>
+        /// <param name="settings">Settings</param>
+        public async Task Download(string url, IUniversalDownloaderPlatformSettings settings)
+        {
+            await Download(url, null, settings);
+        }
+
+        /// <summary>
         /// Download specified creator
         /// </summary>
         /// <param name="url">Url of the creator's page</param>
-        /// <param name="settings">Downloader settings, will be set to default values if not provided</param>
-        public async Task Download(string url)
+        /// <param name="downloadDirectory">Target download directory, if not set will be set to appdir\download\ICrawlTargetInfo.SaveDirectory</param>
+        /// <param name="settings">Settings</param>
+        public async Task Download(string url, string downloadDirectory, IUniversalDownloaderPlatformSettings settings)
         {
             if(string.IsNullOrEmpty(url))
                 throw new ArgumentException("Argument cannot be null or empty", nameof(url));
 
+            if (settings == null)
+                throw new ArgumentException("Argument cannot be null", nameof(settings));
+
             url = url.ToLower(CultureInfo.InvariantCulture);
 
-            string downloadDirectory = null; //todo: allow passing download directory and other settings
+            settings.Consumed = true;
+            _logger.Debug($"Universal Downloader Platform settings: {settings}");
 
             try
             {
@@ -128,9 +140,7 @@ namespace UniversalDownloaderPlatform.Engine
                 _cancellationTokenSource = new CancellationTokenSource();
 
                 //Call initialization code in all plugins
-                await _pluginManager.BeforeStart(/*settings*/);
-
-                //TODO: custom info retrieval call (campaign retrieval, cookie check, etc)
+                await _pluginManager.BeforeStart(settings);
 
                 ICrawlTargetInfo crawlTargetInfo = await _crawlTargetInfoRetriever.RetrieveCrawlTargetInfo(url);
 
@@ -154,10 +164,9 @@ namespace UniversalDownloaderPlatform.Engine
 
                 _logger.Debug("Starting crawler");
                 OnStatusChanged(new DownloaderStatusChangedEventArgs(DownloaderStatus.Crawling));
-                List<ICrawledUrl> crawledUrls = await _pageCrawler.Crawl(crawlTargetInfo/*, settings*/, downloadDirectory);
+                List<ICrawledUrl> crawledUrls = await _pageCrawler.Crawl(crawlTargetInfo, settings, downloadDirectory);
 
-                /*_logger.Debug("Closing puppeteer browser");
-                await _puppeteerEngine.CloseBrowser();*/
+                //puppeteer was closed here before
 
                 _logger.Debug("Starting downloader");
                 OnStatusChanged(new DownloaderStatusChangedEventArgs(DownloaderStatus.Downloading));
@@ -218,8 +227,8 @@ namespace UniversalDownloaderPlatform.Engine
 
             _cancellationTokenSource?.Cancel();
             _initializationSemaphore?.Dispose();
-            //((IDisposable)_puppeteerEngine)?.Dispose();
-            //_kernel?.Dispose();
+            //puppeteer was disposed here before
+            _kernel?.Dispose();
         }
     }
 }

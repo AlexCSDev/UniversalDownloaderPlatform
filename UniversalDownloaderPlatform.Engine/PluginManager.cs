@@ -69,14 +69,14 @@ namespace UniversalDownloaderPlatform.Engine
             }
         }
 
-        public async Task BeforeStart(/*PatreonDownloaderSettings settings*/)
+        public async Task BeforeStart(IUniversalDownloaderPlatformSettings settings)
         {
             foreach (IPlugin plugin in _plugins)
             {
-                await plugin.BeforeStart(false/*settings.OverwriteFiles*/);
+                await plugin.BeforeStart(settings.OverwriteFiles);
             }
 
-            await _defaultPlugin.BeforeStart(false/*settings.OverwriteFiles*/);
+            await _defaultPlugin.BeforeStart(settings.OverwriteFiles);
         }
 
         public async Task DownloadCrawledUrl(ICrawledUrl crawledUrl, string downloadDirectory)

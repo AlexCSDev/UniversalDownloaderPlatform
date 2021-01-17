@@ -10,7 +10,7 @@ namespace UniversalDownloaderPlatform.Common.Interfaces
         /// Initialization function, called on every PatreonDownloader.Download call
         /// </summary>
         /// <returns></returns>
-        Task BeforeStart(/*PatreonDownloaderSettings settings*/);
+        Task BeforeStart(IUniversalDownloaderPlatformSettings settings);
 
         /// <summary>
         /// Download file using one of the registered plugins (or default if none are found)

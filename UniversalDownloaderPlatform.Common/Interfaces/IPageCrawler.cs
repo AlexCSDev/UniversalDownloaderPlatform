@@ -12,6 +12,6 @@ namespace UniversalDownloaderPlatform.Common.Interfaces
         event EventHandler<PostCrawlEventArgs> PostCrawlEnd;
         event EventHandler<NewCrawledUrlEventArgs> NewCrawledUrl;
         event EventHandler<CrawlerMessageEventArgs> CrawlerMessage;
-        Task<List<ICrawledUrl>> Crawl(ICrawlTargetInfo crawlTargetInfo, /*PatreonDownloaderSettings settings,*/ string downloadDirectory);
+        Task<List<ICrawledUrl>> Crawl(ICrawlTargetInfo crawlTargetInfo, IUniversalDownloaderPlatformSettings settings, string downloadDirectory);
     }
 }
