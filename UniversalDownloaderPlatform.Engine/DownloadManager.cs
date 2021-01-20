@@ -55,8 +55,13 @@ namespace UniversalDownloaderPlatform.Engine.Stages.Downloading
 
                             if (!UrlChecker.IsValidUrl(entry.Url))
                             {
-                                _logger.Error(
-                                    $"Invalid or blacklisted url: {entry.Url}");
+                                _logger.Error($"Invalid url: {entry.Url}");
+                                return;
+                            }
+
+                            if (UrlChecker.IsBlacklistedUrl(entry.Url))
+                            {
+                                _logger.Warn($"Url is blacklisted: {entry.Url}");
                                 return;
                             }
 
