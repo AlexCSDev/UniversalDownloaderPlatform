@@ -19,15 +19,17 @@ namespace UniversalDownloaderPlatform.Engine.Stages.Downloading
     {
         private readonly IPluginManager _pluginManager;
         private readonly ICrawledUrlProcessor _crawledUrlProcessor;
+        private readonly IUrlChecker _urlChecker;
 
         private readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
         public event EventHandler<FileDownloadedEventArgs> FileDownloaded;
 
-        public DownloadManager(IPluginManager pluginManager, ICrawledUrlProcessor crawledUrlProcessor)
+        public DownloadManager(IPluginManager pluginManager, ICrawledUrlProcessor crawledUrlProcessor, IUrlChecker urlChecker)
         {
             _pluginManager = pluginManager ?? throw new ArgumentNullException(nameof(pluginManager));
             _crawledUrlProcessor = crawledUrlProcessor ?? throw new ArgumentNullException(nameof(crawledUrlProcessor));
+            _urlChecker = urlChecker ?? throw new ArgumentNullException(nameof(urlChecker));
         }
 
         public async Task Download(List<ICrawledUrl> crawledUrls, string downloadDirectory, CancellationToken cancellationToken)
@@ -53,13 +55,13 @@ namespace UniversalDownloaderPlatform.Engine.Stages.Downloading
                         {
                             ICrawledUrl entry = crawledUrls[entryPos];
 
-                            if (!UrlChecker.IsValidUrl(entry.Url))
+                            if (!_urlChecker.IsValidUrl(entry.Url))
                             {
                                 _logger.Error($"Invalid url: {entry.Url}");
                                 return;
                             }
 
-                            if (UrlChecker.IsBlacklistedUrl(entry.Url))
+                            if (_urlChecker.IsBlacklistedUrl(entry.Url))
                             {
                                 _logger.Warn($"Url is blacklisted: {entry.Url}");
                                 return;

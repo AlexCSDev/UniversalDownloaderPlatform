@@ -15,14 +15,14 @@ namespace UniversalDownloaderPlatform.Common.Events
     {
         private readonly CrawlerMessageType _messageType;
         private readonly string _message;
-        private readonly long _postId;
+        private readonly string _postId;
 
         public CrawlerMessageType MessageType => _messageType;
         public string Message => _message;
 
-        public long PostId => _postId;
+        public string PostId => _postId;
 
-        public CrawlerMessageEventArgs(CrawlerMessageType messageType, string message, long postId = -1)
+        public CrawlerMessageEventArgs(CrawlerMessageType messageType, string message, string postId = "unknown")
         {
             _messageType = messageType;
             _message = message ?? throw new ArgumentNullException(nameof(message));

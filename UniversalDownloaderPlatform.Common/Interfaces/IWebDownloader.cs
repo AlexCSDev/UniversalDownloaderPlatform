@@ -1,9 +1,14 @@
 ﻿using System.Threading.Tasks;
+using UniversalDownloaderPlatform.Common.Interfaces.Models;
 
 namespace UniversalDownloaderPlatform.Common.Interfaces
 {
     public interface IWebDownloader
     {
+        /// <summary>
+        /// Initialization function, called on every PatreonDownloader.Download call
+        /// </summary>
+        Task BeforeStart(IUniversalDownloaderPlatformSettings settings);
         /// <summary>
         /// Download file
         /// </summary>

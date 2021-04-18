@@ -15,6 +15,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             return await GetRemoteFileSizeInternal(url);
         }
 
+        //TODO: cookies?
         private async Task<long> GetRemoteFileSizeInternal(string url, int retry = 0)
         {
             if (retry > 0)

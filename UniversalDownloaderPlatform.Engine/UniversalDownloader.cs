@@ -28,6 +28,8 @@ namespace UniversalDownloaderPlatform.Engine
         private readonly IPageCrawler _pageCrawler;
         private readonly ICrawlTargetInfoRetriever _crawlTargetInfoRetriever;
         private readonly ICrawlResultsExporter _crawlResultsExporter;
+        private readonly IUrlChecker _urlChecker;
+        private readonly IWebDownloader _webDownloader;
         private readonly IKernel _kernel;
 
         private readonly SemaphoreSlim _initializationSemaphore;
@@ -89,6 +91,12 @@ namespace UniversalDownloaderPlatform.Engine
             if (_crawlResultsExporter == null)
                 _logger.Debug("Crawl results exporter not provided");
 
+            _logger.Debug("Initializing url checker");
+            _urlChecker = _kernel.Get<IUrlChecker>();
+
+            _logger.Debug("Initializing web downloader");
+            _webDownloader = _kernel.Get<IWebDownloader>();
+
             OnStatusChanged(new DownloaderStatusChangedEventArgs(DownloaderStatus.Ready));
         }
 
@@ -146,6 +154,8 @@ namespace UniversalDownloaderPlatform.Engine
                 _cancellationTokenSource = new CancellationTokenSource();
 
                 //Call initialization code in all plugins
+                await _urlChecker.BeforeStart(settings);
+                await _webDownloader.BeforeStart(settings);
                 await _pluginManager.BeforeStart(settings);
 
                 ICrawlTargetInfo crawlTargetInfo = await _crawlTargetInfoRetriever.RetrieveCrawlTargetInfo(url);

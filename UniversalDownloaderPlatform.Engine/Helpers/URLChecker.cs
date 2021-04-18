@@ -1,19 +1,23 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using NLog;
+using UniversalDownloaderPlatform.Common.Interfaces.Models;
+using UniversalDownloaderPlatform.Engine.Interfaces;
 
 namespace UniversalDownloaderPlatform.Engine.Helpers
 {
-    internal static class UrlChecker
+    internal class UrlChecker : IUrlChecker
     {
-        private static string[] _blackList = (ConfigurationManager.Configuration["UrlBlackList"] ?? "").ToLowerInvariant().Split("|");
+        private List<string> _blackList;
 
-        /// <summary>
-        /// Checks that url is a valid url and is not blacklisted
-        /// </summary>
-        /// <param name="url">Url to check</param>
-        /// <returns></returns>
-        public static bool IsValidUrl(string url)
+        public async Task BeforeStart(IUniversalDownloaderPlatformSettings settings)
+        {
+            _blackList = settings.UrlBlackList;
+        }
+
+        public bool IsValidUrl(string url)
         {
             if (string.IsNullOrWhiteSpace(url))
                 return false;
@@ -25,12 +29,7 @@ namespace UniversalDownloaderPlatform.Engine.Helpers
             return validationResult;
         }
 
-        /// <summary>
-        /// Checks that url is a valid url is not blacklisted
-        /// </summary>
-        /// <param name="url"></param>
-        /// <returns></returns>
-        public static bool IsBlacklistedUrl(string url)
+        public bool IsBlacklistedUrl(string url)
         {
             if (string.IsNullOrWhiteSpace(url))
                 return false;

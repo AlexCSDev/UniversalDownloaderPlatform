@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using NLog;
 using UniversalDownloaderPlatform.Common.Exceptions;
 using UniversalDownloaderPlatform.Common.Interfaces;
+using UniversalDownloaderPlatform.Common.Interfaces.Models;
 using UniversalDownloaderPlatform.DefaultImplementations.Interfaces;
 
 namespace UniversalDownloaderPlatform.DefaultImplementations
@@ -13,17 +14,27 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
     //TODO: Make disposable?
     public class WebDownloader : IWebDownloader
     {
-        private readonly HttpClient _httpClient;
+        private HttpClient _httpClient;
         private readonly IRemoteFileSizeChecker _remoteFileSizeChecker;
         private readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
-        public WebDownloader(IRemoteFileSizeChecker remoteFileSizeChecker)
+        public WebDownloader(IRemoteFileSizeChecker remoteFileSizeChecker, IUniversalDownloaderPlatformSettings settings)
         {
             _remoteFileSizeChecker =
                 remoteFileSizeChecker ?? throw new ArgumentNullException(nameof(remoteFileSizeChecker));
+        }
 
-            _httpClient = new HttpClient();
-            _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2486.0 Safari/537.36 Edge/13.10586");
+        public async Task BeforeStart(IUniversalDownloaderPlatformSettings settings)
+        {
+            HttpClientHandler httpClientHandler = new HttpClientHandler();
+            if (settings.CookieContainer != null)
+            {
+                httpClientHandler.UseCookies = true;
+                httpClientHandler.CookieContainer = settings.CookieContainer;
+            }
+
+            _httpClient = new HttpClient(httpClientHandler);
+            _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(settings.UserAgent);
         }
 
         public virtual async Task DownloadFile(string url, string path, bool overwrite = false)
