@@ -35,6 +35,8 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
 
             _httpClient = new HttpClient(httpClientHandler);
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(settings.UserAgent);
+
+            await _remoteFileSizeChecker.BeforeStart(settings);
         }
 
         public virtual async Task DownloadFile(string url, string path, bool overwrite = false)

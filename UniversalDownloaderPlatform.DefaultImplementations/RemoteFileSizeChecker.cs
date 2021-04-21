@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
 using NLog;
+using UniversalDownloaderPlatform.Common.Interfaces.Models;
 using UniversalDownloaderPlatform.DefaultImplementations.Interfaces;
 
 namespace UniversalDownloaderPlatform.DefaultImplementations
@@ -9,13 +11,18 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
     public class RemoteFileSizeChecker : IRemoteFileSizeChecker
     {
         private readonly ILogger _logger = LogManager.GetCurrentClassLogger();
+        private CookieContainer _cookieContainer;
+
+        public async Task BeforeStart(IUniversalDownloaderPlatformSettings settings)
+        {
+            _cookieContainer = settings.CookieContainer;
+        }
 
         public async Task<long> GetRemoteFileSize(string url)
         {
             return await GetRemoteFileSizeInternal(url);
         }
 
-        //TODO: cookies?
         private async Task<long> GetRemoteFileSizeInternal(string url, int retry = 0)
         {
             if (retry > 0)
@@ -28,8 +35,9 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                 await Task.Delay(retry * 2 * 1000);
             }
 
-            WebRequest webRequest = WebRequest.Create(url);
+            HttpWebRequest webRequest = WebRequest.Create(url) as HttpWebRequest;
             webRequest.Method = "HEAD";
+            webRequest.CookieContainer = _cookieContainer;
 
             try
             {
