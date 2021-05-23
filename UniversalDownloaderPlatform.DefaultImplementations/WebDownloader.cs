@@ -2,6 +2,7 @@
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using NLog;
 using UniversalDownloaderPlatform.Common.Exceptions;
@@ -53,6 +54,16 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
         {
             if (retry > 0)
             {
+                try
+                {
+                    if (File.Exists(path))
+                        File.Delete(path);
+                }
+                catch (Exception fileDeleteException)
+                {
+                    throw new DownloadException($"Unable to delete corrupted file {path}", fileDeleteException);
+                }
+
                 if (retry >= 5)
                 {
                     throw new Exception("Retries limit reached");
@@ -86,7 +97,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                         if (fileSize != remoteFileSize)
                         {
                             string backupFilename =
-                                $"{Path.GetFileNameWithoutExtension(path)}_old_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}{Path.GetExtension(path)}";
+                                    $"{Path.GetFileNameWithoutExtension(path)}_old_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}{Path.GetExtension(path)}";
                             _logger.Warn($"Local and remote file sizes does not match, file {url} will be redownloaded. Old file will be backed up as {backupFilename}. Remote file size: {remoteFileSize}, local file size: {fileSize}");
                             File.Move(path, Path.Combine(fileInfo.DirectoryName, backupFilename));
                         }
@@ -103,15 +114,16 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                     }
                 }
 
-                if (!isFilesIdentical && !overwrite)
-                    throw new DownloadException($"File {path} already exists");
-                else if (isFilesIdentical && !overwrite)
+                if (isFilesIdentical)
                 {
-                    _logger.Warn($"File {path} already exists and has the same file size as remote file (or remote file is not available). Skipping...");
-                    return;
+                    if (!overwrite)
+                    {
+                        _logger.Warn($"File {path} already exists and has the same file size as remote file (or remote file is not available). Skipping...");
+                        return;
+                    }
+                    else
+                        _logger.Warn($"File {path} already exists, will be overwriten!");
                 }
-
-                _logger.Warn($"File {path} already exists, will be overwriten!");
             }
 
             try
@@ -179,6 +191,26 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                     }
                 }
             }
+            catch(TaskCanceledException ex)
+            {
+                retry++;
+                _logger.Debug(ex,$"Encountered error while trying to download {url}, retrying in {retry * 2} seconds ({5 - retry} retries left)... The error is: {ex}");
+                await DownloadFileInternal(url, path, overwrite, retry);
+            }
+            catch (IOException ex)
+            {
+                retry++;
+                _logger.Debug(ex,
+                    $"Encountered IO error while trying to access {url}, retrying in {retry * 2} seconds ({5 - retry} retries left)... The error is: {ex}");
+                await DownloadFileInternal(url, path, overwrite, retry);
+            }
+            catch (SocketException ex)
+            {
+                retry++;
+                _logger.Debug(ex,
+                    $"Encountered connection error while trying to access {url}, retrying in {retry * 2} seconds ({5 - retry} retries left)... The error is: {ex}");
+                await DownloadFileInternal(url, path, overwrite, retry);
+            }
             catch (Exception ex)
             {
                 throw new DownloadException($"Unable to download from {url}: {ex.Message}", ex);
@@ -226,13 +258,35 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
 
                             retry++;
 
-                            _logger.Debug($"{url} returned status code {responseMessage.StatusCode}, retrying in {retry * 2} seconds ({5 - retry} retries left)...");
+                            _logger.Debug(
+                                $"{url} returned status code {responseMessage.StatusCode}, retrying in {retry * 2} seconds ({5 - retry} retries left)...");
                             return await DownloadStringInternal(url, retry);
                         }
 
                         return await responseMessage.Content.ReadAsStringAsync();
                     }
                 }
+            }
+            catch (TaskCanceledException ex)
+            {
+                retry++;
+                _logger.Debug(ex,
+                    $"Encountered timeout error while trying to access {url}, retrying in {retry * 2} seconds ({5 - retry} retries left)... The error is: {ex}");
+                return await DownloadStringInternal(url, retry);
+            }
+            catch (IOException ex)
+            {
+                retry++;
+                _logger.Debug(ex,
+                    $"Encountered IO error while trying to access {url}, retrying in {retry * 2} seconds ({5 - retry} retries left)... The error is: {ex}");
+                return await DownloadStringInternal(url, retry);
+            }
+            catch (SocketException ex)
+            {
+                retry++;
+                _logger.Debug(ex,
+                    $"Encountered connection error while trying to access {url}, retrying in {retry * 2} seconds ({5 - retry} retries left)... The error is: {ex}");
+                return await DownloadStringInternal(url, retry);
             }
             catch (Exception ex)
             {
