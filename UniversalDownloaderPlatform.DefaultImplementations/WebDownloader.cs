@@ -67,7 +67,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
 
                 if (retry >= _maxRetries)
                 {
-                    throw new Exception("Retries limit reached");
+                    throw new DownloadException("Retries limit reached");
                 }
 
                 await Task.Delay(retry * 2 * 1000);
@@ -232,7 +232,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             {
                 if (retry >= _maxRetries)
                 {
-                    throw new Exception("Retries limit reached");
+                    throw new DownloadException("Retries limit reached");
                 }
 
                 await Task.Delay(retry * 2 * 1000);
