@@ -95,7 +95,11 @@ namespace UniversalDownloaderPlatform.MegaDownloader
                 .Where(n => !n.HasChildNodes && !string.IsNullOrWhiteSpace(n.InnerText))
                 .Select(n => n.InnerText)); //first get a copy of text without all html tags
             parseText += doc.DocumentNode.InnerHtml; //now append a copy of this text with all html tags intact (otherwise we lose all <a href=... links)
-            parseText = parseText.Replace("</a> ", "").Replace("</a>", ""); //trying to get rid of the situations where key is outside of anchor tag
+            parseText = parseText
+                .Replace("</a> ", "")
+                .Replace("</a>", "")
+                .Replace("<a>","")
+                .Replace("<a", ""); //trying to get rid of the situations where key is outside of anchor tag. TODO: replace with with something better
 
             MatchCollection matchesNewFormat = _newFormatRegex.Matches(parseText);
 
