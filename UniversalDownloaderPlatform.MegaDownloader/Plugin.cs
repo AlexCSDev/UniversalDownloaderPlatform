@@ -28,8 +28,8 @@ namespace UniversalDownloaderPlatform.MegaDownloader
 
         static Plugin()
         {
-            _newFormatRegex = new Regex(@"/(?<type>(file|folder))/(?<id>[^#]+)#(?<key>[a-zA-Z0-9_-]+)");//Regex("(#F|#)![a-zA-Z0-9]{0,8}![a-zA-Z0-9_-]+");
-            _oldFormatRegex = new Regex(@"#(?<type>F?)!(?<id>[^!]+)!(?<key>[^$!\?]+)");
+            _newFormatRegex = new Regex(@"/(?<type>(file|folder))/(?<id>[^# ]+)(#(?<key>[a-zA-Z0-9_-]+))?");//Regex("(#F|#)![a-zA-Z0-9]{0,8}![a-zA-Z0-9_-]+");
+            _oldFormatRegex = new Regex(@"#(?<type>F?)!(?<id>[^!]+)(!(?<key>[^$!\?]+))?");
 
             string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "mega_credentials.json");
 
@@ -95,6 +95,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
                 .Where(n => !n.HasChildNodes && !string.IsNullOrWhiteSpace(n.InnerText))
                 .Select(n => n.InnerText)); //first get a copy of text without all html tags
             parseText += doc.DocumentNode.InnerHtml; //now append a copy of this text with all html tags intact (otherwise we lose all <a href=... links)
+            parseText = parseText.Replace("</a> ", "").Replace("</a>", ""); //trying to get rid of the situations where key is outside of anchor tag
 
             MatchCollection matchesNewFormat = _newFormatRegex.Matches(parseText);
 
@@ -107,12 +108,22 @@ namespace UniversalDownloaderPlatform.MegaDownloader
             foreach (Match match in matchesNewFormat)
             {
                 _logger.Debug($"Parsing mega match new format {match.Value}");
+                if (!match.Groups["key"].Success || string.IsNullOrWhiteSpace(match.Groups["key"].Value))
+                {
+                    _logger.Warn("Mega url without key, will be skipped");
+                    continue;
+                }
                 megaUrls.Add($"https://mega.nz/{match.Groups["type"].Value.Trim()}/{match.Groups["id"].Value.Trim()}#{match.Groups["key"].Value.Trim()}");
             }
 
             foreach (Match match in matchesOldFormat)
             {
                 _logger.Debug($"Parsing mega match old format {match.Value}");
+                if (!match.Groups["key"].Success || string.IsNullOrWhiteSpace(match.Groups["key"].Value))
+                {
+                    _logger.Warn("Mega url without key, will be skipped");
+                    continue;
+                }
                 megaUrls.Add($"https://mega.nz/#{match.Groups["type"].Value.Trim()}!{match.Groups["id"].Value.Trim()}!{match.Groups["key"].Value.Trim()}");
             }
 
