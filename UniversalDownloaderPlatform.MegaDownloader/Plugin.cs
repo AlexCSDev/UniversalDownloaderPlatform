@@ -4,11 +4,14 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using CG.Web.MegaApiClient;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Configuration;
 using NLog;
+using UniversalDownloaderPlatform.Common.Exceptions;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
 using UniversalDownloaderPlatform.Common.Interfaces.Plugins;
+using DownloadException = UniversalDownloaderPlatform.Common.Exceptions.DownloadException;
 
 namespace UniversalDownloaderPlatform.MegaDownloader
 {
@@ -71,17 +74,15 @@ namespace UniversalDownloaderPlatform.MegaDownloader
 
             try
             {
-                var result = _megaDownloader.DownloadUrl(crawledUrl, downloadDirectory);
-
-                if (result != MegaDownloadResult.Success)
-                {
-                    _logger.Error($"Error while downloading {crawledUrl.Url}! {result}");
-                }
+                await _megaDownloader.DownloadUrlAsync(crawledUrl, downloadDirectory);
+            }
+            catch (DownloadException ex)
+            {
+                throw;
             }
             catch (Exception ex)
             {
-                _logger.Error(ex, $"MEGA DOWNLOAD EXCEPTION: {ex}");
-
+                throw new Common.Exceptions.DownloadException($"Unable to download {crawledUrl.Url}: {ex}", ex);
             }
         }
 
