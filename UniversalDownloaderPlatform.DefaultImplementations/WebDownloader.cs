@@ -156,6 +156,12 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                                 case HttpStatusCode.MethodNotAllowed:
                                 case HttpStatusCode.Gone:
                                     throw new WebException($"Error status code returned: {responseMessage.StatusCode}");
+                                case HttpStatusCode.Moved:
+                                    string newLocation = responseMessage.Headers.Location.ToString();
+                                    _logger.Debug(
+                                        $"{url} has been moved to: {newLocation}, retrying using new url");
+                                    await DownloadFileInternal(newLocation, path, overwrite, retry);
+                                    return;
                             }
 
                             retry++;
@@ -255,6 +261,11 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                                 case HttpStatusCode.MethodNotAllowed:
                                 case HttpStatusCode.Gone:
                                     throw new WebException($"Error status code returned: {responseMessage.StatusCode}");
+                                case HttpStatusCode.Moved:
+                                    string newLocation = responseMessage.Headers.Location.ToString();
+                                    _logger.Debug(
+                                        $"{url} has been moved to: {newLocation}, retrying using new url");
+                                    return await DownloadStringInternal(newLocation, retry);
                             }
 
                             retry++;
