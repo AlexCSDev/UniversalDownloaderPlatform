@@ -232,6 +232,23 @@ namespace UniversalDownloaderPlatform.MegaDownloader
             {
                 IProgress<double> progressHandler = new Progress<double>(x => _logger.Trace("Mega download progress: {0}%", x));
                 await _client.DownloadFileAsync(fileNode, path, progressHandler);
+
+                FileInfo fileInfo = new FileInfo(path);
+                long fileSize = fileInfo.Length;
+                fileInfo = null;
+
+                if (remoteFileSize > 0 && fileSize != remoteFileSize)
+                {
+                    _logger.Warn($"Downloaded file size differs from the size returned by server. Local size: {fileSize}, remote size: {remoteFileSize}. File {path} will be redownloaded.");
+
+                    File.Delete(path);
+
+                    retry++;
+
+                    await DownloadFileAsync(fileNode, path, overwrite, retry);
+                    return;
+                }
+                _logger.Debug($"File size check passed for: {path}");
             }
             catch (Exception ex)
             {

@@ -13,6 +13,7 @@ using UniversalDownloaderPlatform.Common.Enums;
 using UniversalDownloaderPlatform.Common.Interfaces.Plugins;
 using UniversalDownloaderPlatform.Engine.DependencyInjection;
 using UniversalDownloaderPlatform.Common.Events;
+using UniversalDownloaderPlatform.Common.Exceptions;
 using UniversalDownloaderPlatform.Engine.Exceptions;
 using UniversalDownloaderPlatform.Engine.Stages.Downloading;
 using UniversalDownloaderPlatform.Common.Interfaces;
@@ -30,6 +31,7 @@ namespace UniversalDownloaderPlatform.Engine
         private readonly ICrawlResultsExporter _crawlResultsExporter;
         private readonly IUrlChecker _urlChecker;
         private readonly IWebDownloader _webDownloader;
+        private readonly ICookieValidator _cookieValidator;
         private readonly IKernel _kernel;
 
         private readonly SemaphoreSlim _initializationSemaphore;
@@ -97,6 +99,11 @@ namespace UniversalDownloaderPlatform.Engine
             _logger.Debug("Initializing web downloader");
             _webDownloader = _kernel.Get<IWebDownloader>();
 
+            _logger.Debug("Initializing cookie validator");
+            _cookieValidator = _kernel.TryGet<ICookieValidator>();
+            if (_cookieValidator == null)
+                _logger.Debug("Cookie validator not provided");
+
             OnStatusChanged(new DownloaderStatusChangedEventArgs(DownloaderStatus.Ready));
         }
 
@@ -157,6 +164,9 @@ namespace UniversalDownloaderPlatform.Engine
                 await _urlChecker.BeforeStart(settings);
                 await _webDownloader.BeforeStart(settings);
                 await _pluginManager.BeforeStart(settings);
+
+                if (_cookieValidator != null)
+                    await _cookieValidator.ValidateCookies(settings.CookieContainer);
 
                 ICrawlTargetInfo crawlTargetInfo = await _crawlTargetInfoRetriever.RetrieveCrawlTargetInfo(url);
 
