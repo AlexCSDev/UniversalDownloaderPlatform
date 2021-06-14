@@ -60,10 +60,10 @@ namespace UniversalDownloaderPlatform.MegaDownloader
             }
             else
             {
-                INodeInfo fileNode = await _client.GetNodeFromLinkAsync(uri);
+                INodeInfo fileNodeInfo = await _client.GetNodeFromLinkAsync(uri);
                 string path = Path.Combine(downloadPath, crawledUrl.DownloadPath,
-                    $"{fileNode.Id.Substring(0, 5)}_{fileNode.Name}");
-                await DownloadFileAsync((INode)fileNode, path, overwriteFiles);
+                    $"{fileNodeInfo.Id.Substring(0, 5)}_{fileNodeInfo.Name}");
+                await DownloadFileAsync(null, uri, fileNodeInfo, path, overwriteFiles);
             }
 
             _logger.Debug($"[MEGA] Finished downloading {crawledUrl.Url}");
@@ -125,7 +125,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
                     node.Name);
                 try
                 {
-                    await DownloadFileAsync(node, path, overwrite);
+                    await DownloadFileAsync(node, null, null, path, overwrite);
                 }
                 catch (Exception ex)
                 {
@@ -134,9 +134,17 @@ namespace UniversalDownloaderPlatform.MegaDownloader
             }
         }
 
-        private async Task DownloadFileAsync(INode fileNode, string path, bool overwrite, int retry = 0)
+        private async Task DownloadFileAsync(INode fileNode, Uri fileUri, INodeInfo fileNodeInfo, string path, bool overwrite, int retry = 0) //MegaApiClient is a mess, that's why we pass so many parameters
         {
-            if (fileNode.Type != NodeType.File)
+            if(fileNode == null && fileNodeInfo == null)
+                throw new ArgumentException("fileNode or fileNodeInfo should be filled");
+            if((fileNodeInfo != null && fileUri == null) || fileNodeInfo == null && fileUri != null)
+                throw new ArgumentException("Both fileUri and fileNodeInfo should be filled");
+            if (fileNode != null && fileNodeInfo != null)
+                throw new ArgumentException("Both fileNode and fileNodeInfo cannot be filled at the same time");
+
+            INodeInfo nodeInfo = fileNode != null ? fileNode : fileNodeInfo;
+            if (nodeInfo.Type != NodeType.File)
                 throw new Exception("Node is not a file");
 
             if (retry > 0)
@@ -159,9 +167,9 @@ namespace UniversalDownloaderPlatform.MegaDownloader
                 await Task.Delay(retry * 2 * 1000);
             }
 
-            _logger.Debug($"[MEGA] Downloading {fileNode.Name} to {path}");
+            _logger.Debug($"[MEGA] Downloading {nodeInfo.Name} to {path}");
 
-            long remoteFileSize = fileNode.Size;
+            long remoteFileSize = nodeInfo.Size;
             bool isFilesIdentical = false;
 
             if (File.Exists(path))
@@ -178,7 +186,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
                         {
                             string backupFilename =
                                     $"{Path.GetFileNameWithoutExtension(path)}_old_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}{Path.GetExtension(path)}";
-                            _logger.Warn($"[MEGA] Local and remote file sizes does not match, file {fileNode.Id} will be redownloaded. Old file will be backed up as {backupFilename}. Remote file size: {remoteFileSize}, local file size: {fileSize}");
+                            _logger.Warn($"[MEGA] Local and remote file sizes does not match, file {nodeInfo.Id} will be redownloaded. Old file will be backed up as {backupFilename}. Remote file size: {remoteFileSize}, local file size: {fileSize}");
                             File.Move(path, Path.Combine(fileInfo.DirectoryName, backupFilename));
                         }
                         else
@@ -231,7 +239,10 @@ namespace UniversalDownloaderPlatform.MegaDownloader
             try
             {
                 IProgress<double> progressHandler = new Progress<double>(x => _logger.Trace("Mega download progress: {0}%", x));
-                await _client.DownloadFileAsync(fileNode, path, progressHandler);
+                if(fileNode != null)
+                    await _client.DownloadFileAsync(fileNode, path, progressHandler);
+                else
+                    await _client.DownloadFileAsync(fileUri, path, progressHandler);
 
                 FileInfo fileInfo = new FileInfo(path);
                 long fileSize = fileInfo.Length;
@@ -245,7 +256,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
 
                     retry++;
 
-                    await DownloadFileAsync(fileNode, path, overwrite, retry);
+                    await DownloadFileAsync(fileNode, fileUri, fileNodeInfo, path, overwrite, retry);
                     return;
                 }
                 _logger.Debug($"File size check passed for: {path}");
@@ -253,8 +264,8 @@ namespace UniversalDownloaderPlatform.MegaDownloader
             catch (Exception ex)
             {
                 retry++;
-                _logger.Debug(ex, $"Encountered error while trying to download {fileNode.Id}, retrying in {retry * 2} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
-                await DownloadFileAsync(fileNode, path, overwrite, retry);
+                _logger.Debug(ex, $"Encountered error while trying to download {nodeInfo.Id}, retrying in {retry * 2} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
+                await DownloadFileAsync(fileNode, fileUri, fileNodeInfo, path, overwrite, retry);
             }
         }
 

@@ -32,7 +32,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
         static Plugin()
         {
             _newFormatRegex = new Regex(@"/(?<type>(file|folder))/(?<id>[^# ]+)(#(?<key>[a-zA-Z0-9_-]+))?");//Regex("(#F|#)![a-zA-Z0-9]{0,8}![a-zA-Z0-9_-]+");
-            _oldFormatRegex = new Regex(@"#(?<type>F?)!(?<id>[^!]+)(!(?<key>[^$!\?<]+))?");
+            _oldFormatRegex = new Regex(@"#(?<type>F?)!(?<id>[^!]+)(!(?<key>[^$!\?<']+))?");
 
             string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "mega_credentials.json");
 
