@@ -72,13 +72,21 @@ namespace UniversalDownloaderPlatform.Engine.Stages.Downloading
                             try
                             {
                                 _logger.Debug($"Calling url processor for: {entry.Url}");
-                                await _crawledUrlProcessor.ProcessCrawledUrl(entry, downloadDirectory);
+                                bool isDownloadAllowed = await _crawledUrlProcessor.ProcessCrawledUrl(entry, downloadDirectory);
 
-                                if (string.IsNullOrWhiteSpace(entry.DownloadPath))
-                                    throw new DownloadException($"Download path is not filled for {entry.Url}");
+                                if (isDownloadAllowed)
+                                {
+                                    if (string.IsNullOrWhiteSpace(entry.DownloadPath))
+                                        throw new DownloadException($"Download path is not filled for {entry.Url}");
 
-                                await _pluginManager.DownloadCrawledUrl(entry, downloadDirectory);
+                                    await _pluginManager.DownloadCrawledUrl(entry, downloadDirectory);
+                                }
+                                else
+                                {
+                                    _logger.Debug($"ProcessCrawledUrl returned false, {entry.Url} will be skipped");
+                                }
 
+                                //TODO: mark isDownloadAllowed = false entries as skipped
                                 entry.IsDownloaded = true;
                                 OnFileDownloaded(new FileDownloadedEventArgs(entry.Url, crawledUrls.Count));
                             }
