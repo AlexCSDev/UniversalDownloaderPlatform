@@ -60,9 +60,10 @@ namespace UniversalDownloaderPlatform.MegaDownloader
             }
             else
             {
+                (_, string id, _) = MegaUrlDataExtractor.Extract(crawledUrl.Url);
                 INodeInfo fileNodeInfo = await _client.GetNodeFromLinkAsync(uri);
                 string path = Path.Combine(downloadPath, crawledUrl.DownloadPath,
-                    $"{fileNodeInfo.Id.Substring(0, 5)}_{fileNodeInfo.Name}");
+                    $"{id.Substring(0, 5)}_{fileNodeInfo.Name}");
                 await DownloadFileAsync(null, uri, fileNodeInfo, path, overwriteFiles);
             }
 
@@ -115,13 +116,13 @@ namespace UniversalDownloaderPlatform.MegaDownloader
                 folder.Value.Path = path;
             }
 
-            var rootFolder = folders.FirstOrDefault(x => string.IsNullOrEmpty(x.Value.ParentId));
+            (_, string id, _) = MegaUrlDataExtractor.Extract(uri.ToString());
 
             foreach (INode node in nodes.Where(x => x.Type == NodeType.File))
             {
                 var path = Path.Combine(
                     downloadPath,
-                    $"{rootFolder.Key.Substring(0, 5)}_{folders.FirstOrDefault(x => x.Key == node.ParentId).Value.Path}",
+                    $"{id.Substring(0, 5)}_{folders.FirstOrDefault(x => x.Key == node.ParentId).Value.Path}",
                     node.Name);
                 try
                 {

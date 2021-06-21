@@ -31,6 +31,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
 
         static Plugin()
         {
+            //todo: replace with MegaUrlDataExtractor
             _newFormatRegex = new Regex(@"/(?<type>(file|folder))/(?<id>[^# ]+)(#(?<key>[a-zA-Z0-9_-]+))?");//Regex("(#F|#)![a-zA-Z0-9]{0,8}![a-zA-Z0-9_-]+");
             _oldFormatRegex = new Regex(@"#(?<type>F?)!(?<id>[^!]+)(!(?<key>[^$!\?<']+))?");
 
