@@ -39,7 +39,7 @@ namespace UniversalDownloaderPlatform.Engine.Stages.Downloading
             if(string.IsNullOrEmpty(downloadDirectory))
                 throw new ArgumentException("Argument cannot be null or empty", nameof(downloadDirectory));
 
-            using (SemaphoreSlim concurrencySemaphore = new SemaphoreSlim(4))
+            using (SemaphoreSlim concurrencySemaphore = new SemaphoreSlim(4)) //todo: allow setting the count here (issue #4)
             {
                 List<Task> tasks = new List<Task>();
                 for (int i = 0; i < crawledUrls.Count; i++)

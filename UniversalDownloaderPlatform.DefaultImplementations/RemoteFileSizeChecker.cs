@@ -12,6 +12,8 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
     {
         private readonly ILogger _logger = LogManager.GetCurrentClassLogger();
         private CookieContainer _cookieContainer;
+        private readonly int _maxRetries = 10; //todo: allow to set this (issue #5)
+        private readonly int _retryMultiplier = 5;
 
         public async Task BeforeStart(IUniversalDownloaderPlatformSettings settings)
         {
@@ -23,17 +25,20 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             return await GetRemoteFileSizeInternal(url);
         }
 
-        private async Task<long> GetRemoteFileSizeInternal(string url, int retry = 0)
+        private async Task<long> GetRemoteFileSizeInternal(string url, int retry = 0, int retryTooManyRequests = 0)
         {
             if (retry > 0)
             {
-                if (retry >= 5)
+                if (retry >= _maxRetries)
                 {
                     throw new Exception("Retries limit reached");
                 }
 
-                await Task.Delay(retry * 2 * 1000);
+                await Task.Delay(retry * _retryMultiplier * 1000);
             }
+
+            if (retryTooManyRequests > 0)
+                await Task.Delay(retryTooManyRequests * _retryMultiplier * 1000);
 
             HttpWebRequest webRequest = WebRequest.Create(url) as HttpWebRequest;
             webRequest.Method = "HEAD";
@@ -62,8 +67,8 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             {
                 if (ex.Response != null)
                 {
-                    HttpStatusCode statusCode = ((HttpWebResponse) ex.Response).StatusCode;
-                    switch (((HttpWebResponse)ex.Response).StatusCode)
+                    HttpWebResponse response = (HttpWebResponse) ex.Response;
+                    switch (response.StatusCode)
                     {
                         case HttpStatusCode.Unauthorized:
                         case HttpStatusCode.Forbidden:
@@ -71,13 +76,22 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                         case HttpStatusCode.MethodNotAllowed:
                         case HttpStatusCode.Gone:
                             throw new WebException(
-                                $"Unable to get remote file size as status code is {statusCode}");
+                                $"[Remote size check] Unable to get remote file size as status code is {response.StatusCode}");
+                        case HttpStatusCode.Moved:
+                            string newLocation = response.Headers["Location"];
+                            _logger.Debug(
+                                $"[Remote size check] {url} has been moved to: {newLocation}, retrying using new url");
+                            return await GetRemoteFileSizeInternal(newLocation);
+                        case HttpStatusCode.TooManyRequests:
+                            retryTooManyRequests++;
+                            _logger.Debug($"[Remote size check] Too many requests for {url}, waiting for {retryTooManyRequests * _retryMultiplier} seconds...");
+                            return await GetRemoteFileSizeInternal(url, 0, retryTooManyRequests);
                     }
 
                     retry++;
 
                     _logger.Debug(
-                        $"Remote file size check: {url} returned status code {statusCode}, retrying in {retry * 2} seconds ({5 - retry} retries left)...");
+                        $"Remote file size check: {url} returned status code {response.StatusCode}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)...");
                     return await GetRemoteFileSizeInternal(url, retry);
                 }
             }

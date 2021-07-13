@@ -18,7 +18,8 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
         private HttpClient _httpClient;
         private readonly IRemoteFileSizeChecker _remoteFileSizeChecker;
         private readonly Logger _logger = LogManager.GetCurrentClassLogger();
-        private readonly int _maxRetries = 10; //todo: load from IUniversalDownloaderPlatformSettings
+        private readonly int _maxRetries = 10; //todo: allow to set this (issue #5)
+        private readonly int _retryMultiplier = 5;
 
         public WebDownloader(IRemoteFileSizeChecker remoteFileSizeChecker, IUniversalDownloaderPlatformSettings settings)
         {
@@ -51,7 +52,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             await DownloadFileInternal(url, path, overwrite);
         }
 
-        private async Task DownloadFileInternal(string url, string path, bool overwrite, int retry = 0)
+        private async Task DownloadFileInternal(string url, string path, bool overwrite, int retry = 0, int retryTooManyRequests = 0)
         {
             if (retry > 0)
             {
@@ -70,8 +71,11 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                     throw new DownloadException("Retries limit reached");
                 }
 
-                await Task.Delay(retry * 2 * 1000);
+                await Task.Delay(retry * _retryMultiplier * 1000);
             }
+
+            if(retryTooManyRequests > 0)
+                await Task.Delay(retryTooManyRequests * _retryMultiplier * 1000);
 
             long remoteFileSize = -1;
             bool isFilesIdentical = false;
@@ -160,13 +164,18 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                                     string newLocation = responseMessage.Headers.Location.ToString();
                                     _logger.Debug(
                                         $"{url} has been moved to: {newLocation}, retrying using new url");
-                                    await DownloadFileInternal(newLocation, path, overwrite, retry);
+                                    await DownloadFileInternal(newLocation, path, overwrite);
+                                    return;
+                                case HttpStatusCode.TooManyRequests:
+                                    retryTooManyRequests++;
+                                    _logger.Debug($"Too many requests for {url}, waiting for {retryTooManyRequests * _retryMultiplier} seconds...");
+                                    await DownloadFileInternal(url, path, overwrite, 0, retryTooManyRequests);
                                     return;
                             }
 
                             retry++;
 
-                            _logger.Debug($"{url} returned status code {responseMessage.StatusCode}, retrying in {retry * 2} seconds ({_maxRetries - retry} retries left)...");
+                            _logger.Debug($"{url} returned status code {responseMessage.StatusCode}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)...");
                             await DownloadFileInternal(url, path, overwrite, retry);
                             return;
                         }
@@ -201,21 +210,21 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             catch(TaskCanceledException ex)
             {
                 retry++;
-                _logger.Debug(ex,$"Encountered error while trying to download {url}, retrying in {retry * 2} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
+                _logger.Debug(ex,$"Encountered error while trying to download {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
                 await DownloadFileInternal(url, path, overwrite, retry);
             }
             catch (IOException ex)
             {
                 retry++;
                 _logger.Debug(ex,
-                    $"Encountered IO error while trying to access {url}, retrying in {retry * 2} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
+                    $"Encountered IO error while trying to access {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
                 await DownloadFileInternal(url, path, overwrite, retry);
             }
             catch (SocketException ex)
             {
                 retry++;
                 _logger.Debug(ex,
-                    $"Encountered connection error while trying to access {url}, retrying in {retry * 2} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
+                    $"Encountered connection error while trying to access {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
                 await DownloadFileInternal(url, path, overwrite, retry);
             }
             catch (Exception ex)
@@ -232,7 +241,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             return await DownloadStringInternal(url);
         }
 
-        private async Task<string> DownloadStringInternal(string url, int retry = 0)
+        private async Task<string> DownloadStringInternal(string url, int retry = 0, int retryTooManyRequests = 0)
         {
             if (retry > 0)
             {
@@ -241,8 +250,11 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                     throw new DownloadException("Retries limit reached");
                 }
 
-                await Task.Delay(retry * 2 * 1000);
+                await Task.Delay(retry * _retryMultiplier * 1000);
             }
+
+            if (retryTooManyRequests > 0)
+                await Task.Delay(retryTooManyRequests * _retryMultiplier * 1000);
 
             try
             {
@@ -265,13 +277,17 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                                     string newLocation = responseMessage.Headers.Location.ToString();
                                     _logger.Debug(
                                         $"{url} has been moved to: {newLocation}, retrying using new url");
-                                    return await DownloadStringInternal(newLocation, retry);
+                                    return await DownloadStringInternal(newLocation);
+                                case HttpStatusCode.TooManyRequests:
+                                    retryTooManyRequests++;
+                                    _logger.Debug($"Too many requests for {url}, waiting for {retryTooManyRequests * _retryMultiplier} seconds...");
+                                    return await DownloadStringInternal(url, 0, retryTooManyRequests);
                             }
 
                             retry++;
 
                             _logger.Debug(
-                                $"{url} returned status code {responseMessage.StatusCode}, retrying in {retry * 2} seconds ({_maxRetries - retry} retries left)...");
+                                $"{url} returned status code {responseMessage.StatusCode}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)...");
                             return await DownloadStringInternal(url, retry);
                         }
 
@@ -283,21 +299,21 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             {
                 retry++;
                 _logger.Debug(ex,
-                    $"Encountered timeout error while trying to access {url}, retrying in {retry * 2} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
+                    $"Encountered timeout error while trying to access {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
                 return await DownloadStringInternal(url, retry);
             }
             catch (IOException ex)
             {
                 retry++;
                 _logger.Debug(ex,
-                    $"Encountered IO error while trying to access {url}, retrying in {retry * 2} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
+                    $"Encountered IO error while trying to access {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
                 return await DownloadStringInternal(url, retry);
             }
             catch (SocketException ex)
             {
                 retry++;
                 _logger.Debug(ex,
-                    $"Encountered connection error while trying to access {url}, retrying in {retry * 2} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
+                    $"Encountered connection error while trying to access {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
                 return await DownloadStringInternal(url, retry);
             }
             catch (Exception ex)
