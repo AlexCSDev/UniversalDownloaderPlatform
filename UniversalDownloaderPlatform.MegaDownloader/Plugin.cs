@@ -32,7 +32,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
         static Plugin()
         {
             //todo: replace with MegaUrlDataExtractor
-            _newFormatRegex = new Regex(@"/(?<type>(file|folder))/(?<id>[^# ]+)(#(?<key>[a-zA-Z0-9_-]+))?");//Regex("(#F|#)![a-zA-Z0-9]{0,8}![a-zA-Z0-9_-]+");
+            _newFormatRegex = new Regex(@"/(?<type>(file|folder))/(?<id>[^#/ ]+)(#(?<key>[a-zA-Z0-9_-]+))?");//Regex("(#F|#)![a-zA-Z0-9]{0,8}![a-zA-Z0-9_-]+");
             _oldFormatRegex = new Regex("#(?<type>F?)!(?<id>[^!]+)(!(?<key>[^$!\\?<'\"\\s]+))?");
 
             string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "mega_credentials.json");
@@ -152,6 +152,9 @@ namespace UniversalDownloaderPlatform.MegaDownloader
 
         public async Task<bool> IsSupportedUrl(string url)
         {
+            if (!url.Contains("mega.nz/") && !url.Contains("mega.co.nz/"))
+                return false;
+
             MatchCollection matchesNewFormat = _newFormatRegex.Matches(url);
             MatchCollection matchesOldFormat = _oldFormatRegex.Matches(url);
 
