@@ -154,6 +154,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                             switch (responseMessage.StatusCode)
                             {
                                 //todo: configure via config?
+                                case HttpStatusCode.BadRequest:
                                 case HttpStatusCode.Unauthorized:
                                 case HttpStatusCode.Forbidden:
                                 case HttpStatusCode.NotFound:
@@ -267,6 +268,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                         {
                             switch (responseMessage.StatusCode)
                             {
+                                case HttpStatusCode.BadRequest:
                                 case HttpStatusCode.Unauthorized:
                                 case HttpStatusCode.Forbidden:
                                 case HttpStatusCode.NotFound:

@@ -70,6 +70,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                     HttpWebResponse response = (HttpWebResponse) ex.Response;
                     switch (response.StatusCode)
                     {
+                        case HttpStatusCode.BadRequest:
                         case HttpStatusCode.Unauthorized:
                         case HttpStatusCode.Forbidden:
                         case HttpStatusCode.NotFound:
