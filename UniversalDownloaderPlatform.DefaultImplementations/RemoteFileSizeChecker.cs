@@ -1,6 +1,8 @@
 ﻿using System;
+using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using NLog;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
@@ -10,17 +12,27 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
 {
     public class RemoteFileSizeChecker : IRemoteFileSizeChecker
     {
+        private HttpClient _httpClient;
+
         private readonly ILogger _logger = LogManager.GetCurrentClassLogger();
-        private CookieContainer _cookieContainer;
         private int _maxRetries;
         private int _retryMultiplier;
         private readonly Version _httpVersion = new Version(2, 0);
 
         public async Task BeforeStart(IUniversalDownloaderPlatformSettings settings)
         {
-            _cookieContainer = settings.CookieContainer;
             _maxRetries = settings.MaxDownloadRetries;
             _retryMultiplier = settings.RetryMultiplier;
+
+            HttpClientHandler httpClientHandler = new HttpClientHandler();
+            if (settings.CookieContainer != null)
+            {
+                httpClientHandler.UseCookies = true;
+                httpClientHandler.CookieContainer = settings.CookieContainer;
+            }
+
+            _httpClient = new HttpClient(httpClientHandler);
+            _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(settings.UserAgent);
         }
 
         public async Task<long> GetRemoteFileSize(string url)
@@ -43,70 +55,71 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             if (retryTooManyRequests > 0)
                 await Task.Delay(retryTooManyRequests * _retryMultiplier * 1000);
 
-            HttpWebRequest webRequest = WebRequest.Create(url) as HttpWebRequest;
-            webRequest.Method = "HEAD";
-            webRequest.CookieContainer = _cookieContainer;
-            webRequest.ProtocolVersion = _httpVersion;
-
             try
             {
-                using (HttpWebResponse webResponse = (HttpWebResponse) (await webRequest.GetResponseAsync()))
+                using (var request = new HttpRequestMessage(HttpMethod.Head, url) { Version = _httpVersion })
                 {
-                    if (!IsSuccessStatusCode(webResponse.StatusCode))
+                    using (HttpResponseMessage responseMessage =
+                        await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
                     {
-                        //sanity check, this code should not be reached
-                        retry++;
+                        if (!responseMessage.IsSuccessStatusCode)
+                        {
+                            switch (responseMessage.StatusCode)
+                            {
+                                case HttpStatusCode.BadRequest:
+                                case HttpStatusCode.Unauthorized:
+                                case HttpStatusCode.Forbidden:
+                                case HttpStatusCode.NotFound:
+                                case HttpStatusCode.MethodNotAllowed:
+                                case HttpStatusCode.Gone:
+                                    throw new WebException(
+                                        $"[Remote size check] Unable to get remote file size as status code is {responseMessage.StatusCode}");
+                                case HttpStatusCode.Moved:
+                                    string newLocation = responseMessage.Headers.Location.ToString();
+                                    _logger.Debug(
+                                        $"[Remote size check] {url} has been moved to: {newLocation}, retrying using new url");
+                                    return await GetRemoteFileSizeInternal(newLocation);
+                                case HttpStatusCode.TooManyRequests:
+                                    retryTooManyRequests++;
+                                    _logger.Debug($"[Remote size check] Too many requests for {url}, waiting for {retryTooManyRequests * _retryMultiplier} seconds...");
+                                    return await GetRemoteFileSizeInternal(url, 0, retryTooManyRequests);
+                            }
 
-                        _logger.Fatal(
-                            $"[UNREACHABLE CODE REACHED, NOTIFY DEVELOPER] Remote file size check: {url} returned status code {webResponse.StatusCode}, retrying in {retry * 2} seconds ({5 - retry} retries left)...");
-                        return await GetRemoteFileSizeInternal(url, retry);
-                    }
+                            retry++;
 
-                    string fileSize = webResponse.Headers.Get("Content-Length");
-
-                    return Convert.ToInt64(fileSize);
-                }
-            }
-            catch (WebException ex)
-            {
-                if (ex.Response != null)
-                {
-                    HttpWebResponse response = (HttpWebResponse) ex.Response;
-                    switch (response.StatusCode)
-                    {
-                        case HttpStatusCode.BadRequest:
-                        case HttpStatusCode.Unauthorized:
-                        case HttpStatusCode.Forbidden:
-                        case HttpStatusCode.NotFound:
-                        case HttpStatusCode.MethodNotAllowed:
-                        case HttpStatusCode.Gone:
-                            throw new WebException(
-                                $"[Remote size check] Unable to get remote file size as status code is {response.StatusCode}");
-                        case HttpStatusCode.Moved:
-                            string newLocation = response.Headers["Location"];
                             _logger.Debug(
-                                $"[Remote size check] {url} has been moved to: {newLocation}, retrying using new url");
-                            return await GetRemoteFileSizeInternal(newLocation);
-                        case HttpStatusCode.TooManyRequests:
-                            retryTooManyRequests++;
-                            _logger.Debug($"[Remote size check] Too many requests for {url}, waiting for {retryTooManyRequests * _retryMultiplier} seconds...");
-                            return await GetRemoteFileSizeInternal(url, 0, retryTooManyRequests);
+                                $"Remote file size check: {url} returned status code {responseMessage.StatusCode}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)...");
+                            return await GetRemoteFileSizeInternal(url, retry);
+                        }
+
+                        return responseMessage.Content.Headers.ContentLength ?? 0;
                     }
-
-                    retry++;
-
-                    _logger.Debug(
-                        $"Remote file size check: {url} returned status code {response.StatusCode}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)...");
-                    return await GetRemoteFileSizeInternal(url, retry);
                 }
             }
-
-            return 0;
-        }
-
-        private bool IsSuccessStatusCode(HttpStatusCode statusCode)
-        {
-            return (int)statusCode >= 200 && (int)statusCode <= 299;
+            catch (TaskCanceledException ex)
+            {
+                retry++;
+                _logger.Debug(ex, $"Encountered error while trying to download {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
+                return await GetRemoteFileSizeInternal(url, retry);
+            }
+            catch (IOException ex)
+            {
+                retry++;
+                _logger.Debug(ex,
+                    $"Encountered IO error while trying to access {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
+                return await GetRemoteFileSizeInternal(url, retry);
+            }
+            catch (SocketException ex)
+            {
+                retry++;
+                _logger.Debug(ex,
+                    $"Encountered connection error while trying to access {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
+                return await GetRemoteFileSizeInternal(url, retry);
+            }
+            catch (Exception ex)
+            {
+                throw new WebException($"Unable to download from {url}: {ex.Message}", ex);
+            }
         }
     }
 }
