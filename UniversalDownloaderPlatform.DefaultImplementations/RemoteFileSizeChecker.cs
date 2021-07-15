@@ -12,12 +12,15 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
     {
         private readonly ILogger _logger = LogManager.GetCurrentClassLogger();
         private CookieContainer _cookieContainer;
-        private readonly int _maxRetries = 10; //todo: allow to set this (issue #5)
-        private readonly int _retryMultiplier = 5;
+        private int _maxRetries;
+        private int _retryMultiplier;
+        private readonly Version _httpVersion = new Version(2, 0);
 
         public async Task BeforeStart(IUniversalDownloaderPlatformSettings settings)
         {
             _cookieContainer = settings.CookieContainer;
+            _maxRetries = settings.MaxDownloadRetries;
+            _retryMultiplier = settings.RetryMultiplier;
         }
 
         public async Task<long> GetRemoteFileSize(string url)
@@ -43,6 +46,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             HttpWebRequest webRequest = WebRequest.Create(url) as HttpWebRequest;
             webRequest.Method = "HEAD";
             webRequest.CookieContainer = _cookieContainer;
+            webRequest.ProtocolVersion = _httpVersion;
 
             try
             {

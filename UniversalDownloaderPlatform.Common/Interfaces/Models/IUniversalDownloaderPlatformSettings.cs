@@ -28,6 +28,16 @@ namespace UniversalDownloaderPlatform.Common.Interfaces.Models
         List<string> UrlBlackList { get; set; }
 
         /// <summary>
+        /// The amount of times to retry download on failure
+        /// </summary>
+        int MaxDownloadRetries { get; set; }
+
+        /// <summary>
+        /// Multiplier which will be used to calculate time between retries
+        /// </summary>
+        int RetryMultiplier { get; set; }
+
+        /// <summary>
         /// Any attempt to set properties will result in exception if this set to true. Refer to documentation for details on proper implementation.
         /// </summary>
         bool Consumed { get; set; }

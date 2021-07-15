@@ -18,10 +18,11 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
         private HttpClient _httpClient;
         private readonly IRemoteFileSizeChecker _remoteFileSizeChecker;
         private readonly Logger _logger = LogManager.GetCurrentClassLogger();
-        private readonly int _maxRetries = 10; //todo: allow to set this (issue #5)
-        private readonly int _retryMultiplier = 5;
+        private int _maxRetries;
+        private int _retryMultiplier;
+        private readonly Version _httpVersion = new Version(2, 0);
 
-        public WebDownloader(IRemoteFileSizeChecker remoteFileSizeChecker, IUniversalDownloaderPlatformSettings settings)
+        public WebDownloader(IRemoteFileSizeChecker remoteFileSizeChecker)
         {
             _remoteFileSizeChecker =
                 remoteFileSizeChecker ?? throw new ArgumentNullException(nameof(remoteFileSizeChecker));
@@ -29,6 +30,9 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
 
         public async Task BeforeStart(IUniversalDownloaderPlatformSettings settings)
         {
+            _maxRetries = settings.MaxDownloadRetries;
+            _retryMultiplier = settings.RetryMultiplier;
+
             HttpClientHandler httpClientHandler = new HttpClientHandler();
             if (settings.CookieContainer != null)
             {
@@ -144,7 +148,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
 
             try
             {
-                using (var request = new HttpRequestMessage(HttpMethod.Get, url))
+                using (var request = new HttpRequestMessage(HttpMethod.Get, url) { Version = _httpVersion })
                 {
                     using (HttpResponseMessage responseMessage =
                         await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
@@ -259,7 +263,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
 
             try
             {
-                using (var request = new HttpRequestMessage(HttpMethod.Get, url))
+                using (var request = new HttpRequestMessage(HttpMethod.Get, url) { Version = _httpVersion })
                 {
                     using (HttpResponseMessage responseMessage =
                         await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
