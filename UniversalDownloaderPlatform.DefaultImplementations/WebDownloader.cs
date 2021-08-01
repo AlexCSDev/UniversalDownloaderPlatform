@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using NLog;
+using UniversalDownloaderPlatform.Common.Enums;
 using UniversalDownloaderPlatform.Common.Exceptions;
 using UniversalDownloaderPlatform.Common.Interfaces;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
@@ -20,7 +21,8 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
         private readonly Logger _logger = LogManager.GetCurrentClassLogger();
         private int _maxRetries;
         private int _retryMultiplier;
-        private readonly Version _httpVersion = new Version(2, 0);
+        private RemoteFileSizeNotAvailableAction _remoteFileSizeNotAvailableAction;
+        private readonly Version _httpVersion = HttpVersion.Version20;
 
         public WebDownloader(IRemoteFileSizeChecker remoteFileSizeChecker)
         {
@@ -32,6 +34,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
         {
             _maxRetries = settings.MaxDownloadRetries;
             _retryMultiplier = settings.RetryMultiplier;
+            _remoteFileSizeNotAvailableAction = settings.RemoteFileSizeNotAvailableAction;
 
             HttpClientHandler httpClientHandler = new HttpClientHandler();
             if (settings.CookieContainer != null)
@@ -121,6 +124,17 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                         _logger.Error(ex, $"Error during file comparison: {ex}");
                         isFilesIdentical = true; //we assume that local file is identical if we can't check remote file size
                     }
+                }
+                else
+                {
+                    if (_remoteFileSizeNotAvailableAction == RemoteFileSizeNotAvailableAction.KeepExisting)
+                        isFilesIdentical = true;
+
+                    //todo: implement in future versions
+                    /*if (_remoteFileSizeNotAvailableAction == RemoteFileSizeNotAvailableAction.DownloadAndCompare)
+                    {
+                        //download and compare
+                    }*/
                 }
 
                 if (isFilesIdentical)

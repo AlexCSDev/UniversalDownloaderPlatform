@@ -17,7 +17,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
         private readonly ILogger _logger = LogManager.GetCurrentClassLogger();
         private int _maxRetries;
         private int _retryMultiplier;
-        private readonly Version _httpVersion = new Version(2, 0);
+        private readonly Version _httpVersion = HttpVersion.Version20;
 
         public async Task BeforeStart(IUniversalDownloaderPlatformSettings settings)
         {

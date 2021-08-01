@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
+using UniversalDownloaderPlatform.Common.Enums;
 using UniversalDownloaderPlatform.Common.Helpers;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
 
@@ -13,6 +14,8 @@ namespace UniversalDownloaderPlatform.DefaultImplementations.Models
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2486.0 Safari/537.36 Edge/13.10586";
         private const int DefaultMaxDownloadRetries = 10;
         private const int DefaultRetryMultiplier = 5;
+        private const RemoteFileSizeNotAvailableAction DefaultRemoteFileSizeNotAvailableAction =
+            RemoteFileSizeNotAvailableAction.KeepExisting;
 
         private bool _overwriteFiles;
         private CookieContainer _cookieContainer;
@@ -20,6 +23,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations.Models
         private List<string> _urlBlackList;
         private int _maxDownloadRetries;
         private int _retryMultiplier;
+        private RemoteFileSizeNotAvailableAction _remoteFileSizeNotAvailableAction;
         private bool _consumed;
 
         public bool OverwriteFiles
@@ -61,6 +65,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations.Models
             get => _maxDownloadRetries;
             set
             {
+                if (value <= 0) throw new ArgumentOutOfRangeException(nameof(value));
                 ConsumableSetter.Set(Consumed, ref _maxDownloadRetries, value);
             }
         }
@@ -70,8 +75,15 @@ namespace UniversalDownloaderPlatform.DefaultImplementations.Models
             get => _retryMultiplier;
             set
             {
+                if (value <= 0) throw new ArgumentOutOfRangeException(nameof(value));
                 ConsumableSetter.Set(Consumed, ref _retryMultiplier, value);
             }
+        }
+
+        public RemoteFileSizeNotAvailableAction RemoteFileSizeNotAvailableAction
+        {
+            get => _remoteFileSizeNotAvailableAction;
+            set => ConsumableSetter.Set(Consumed, ref _remoteFileSizeNotAvailableAction, value);
         }
 
         public bool Consumed
@@ -85,6 +97,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations.Models
             _userAgent = DefaultUserAgent;
             _maxDownloadRetries = DefaultMaxDownloadRetries;
             _retryMultiplier = DefaultRetryMultiplier;
+            _remoteFileSizeNotAvailableAction = DefaultRemoteFileSizeNotAvailableAction;
         }
     }
 }
