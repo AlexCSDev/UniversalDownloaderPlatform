@@ -1,18 +1,35 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Threading;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 using Google.Apis.Util.Store;
 using NLog;
+using UniversalDownloaderPlatform.Common.Helpers;
 using File = Google.Apis.Drive.v3.Data.File;
 
 namespace UniversalDownloaderPlatform.GoogleDriveDownloader
 {
     internal class GoogleDriveEngine
     {
+        private static readonly Dictionary<string, string> _mimeTypeByExtensions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            // Documents
+            { ".TXT", "text/plain" },
+            { ".RTF", "application/rtf" },
+            { ".PDF", "application/pdf" },
+            { ".DOCX", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+            { ".ODT", "application/vnd.oasis.opendocument.text" },
+
+            // Spreadsheets
+            { ".XLSX", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+            { ".ODS", "application/x-vnd.oasis.opendocument.spreadsheet" },
+            { ".CSV", "text/csv" }
+        };
+
         private static readonly string[] Scopes = { DriveService.Scope.DriveReadonly };
         private static readonly string ApplicationName = "PatreonDownloader Google Drive Plugin";
 
@@ -60,18 +77,37 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
 
         private void DownloadFileResource(File fileResource, string path, bool rootPath = true, bool overwrite = false)
         {
+            StringBuilder normalizeName = new StringBuilder(fileResource.Name);
+
+            foreach (char invalidChar in UniversalDirectoryPatternFormat.InvalidPathChars)
+                normalizeName.Replace(invalidChar.ToString(), String.Empty);
+
             if (rootPath)
             {
-                path = path + fileResource.Name;
+                path += normalizeName.ToString().Trim();
             }
             else
             {
-                path = Path.Combine(path, fileResource.Name);
+                path = Path.Combine(path, normalizeName.ToString().Trim());
             }
 
-            Logger.Info($"[Google Drive] Downloading {fileResource.Name}");
+            Logger.Info($"[Google Drive] Downloading {fileResource.Name} '{fileResource.MimeType}'");
+
             if (fileResource.MimeType != "application/vnd.google-apps.folder")
             {
+                // Handle no extension and google doc file
+                string extension = Path.GetExtension(path);
+                string mimeType;
+                if (String.IsNullOrEmpty(extension))
+                {
+                    path += ".pdf";
+                    mimeType = "application/pdf";
+                }
+                else
+                {
+                    _mimeTypeByExtensions.TryGetValue(extension, out mimeType);
+                }
+
                 if (System.IO.File.Exists(path))
                 {
                     if (!overwrite)
@@ -88,13 +124,20 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
                     Directory.CreateDirectory(new FileInfo(path).DirectoryName);
                 }
 
-                var stream = new System.IO.MemoryStream();
-
-                Service.Files.Get(fileResource.Id).Download(stream);
-                System.IO.FileStream file = new System.IO.FileStream(path, System.IO.FileMode.Create, System.IO.FileAccess.Write);
-                stream.WriteTo(file);
-
-                file.Close();
+                using (System.IO.FileStream file = new System.IO.FileStream(path, System.IO.FileMode.Create, System.IO.FileAccess.Write, FileShare.None))
+                {
+                    // https://developers.google.com/drive/api/v3/mime-types
+                    // https://developers.google.com/drive/api/v3/ref-export-formats
+                    if (fileResource.MimeType == "application/vnd.google-apps.document" ||
+                        fileResource.MimeType == "application/vnd.google-apps.spreadsheet")
+                    {
+                        Service.Files.Export(fileResource.Id, mimeType).Download(file);
+                    }
+                    else
+                    {
+                        Service.Files.Get(fileResource.Id).Download(file);
+                    }
+                }
             }
             else
             {
