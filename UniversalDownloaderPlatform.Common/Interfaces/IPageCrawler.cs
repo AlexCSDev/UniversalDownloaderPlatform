@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using UniversalDownloaderPlatform.Common.Enums;
 using UniversalDownloaderPlatform.Common.Events;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
 

@@ -22,6 +22,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
         private int _maxRetries;
         private int _retryMultiplier;
         private RemoteFileSizeNotAvailableAction _remoteFileSizeNotAvailableAction;
+        //private DirectoryPatternType _directoryPatternType;
         private readonly Version _httpVersion = HttpVersion.Version20;
 
         public WebDownloader(IRemoteFileSizeChecker remoteFileSizeChecker)
@@ -35,6 +36,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             _maxRetries = settings.MaxDownloadRetries;
             _retryMultiplier = settings.RetryMultiplier;
             _remoteFileSizeNotAvailableAction = settings.RemoteFileSizeNotAvailableAction;
+            //_directoryPatternType = settings.DirectoryPatternType;
 
             HttpClientHandler httpClientHandler = new HttpClientHandler();
             if (settings.CookieContainer != null)
@@ -232,7 +234,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                 _logger.Debug(ex,$"Encountered error while trying to download {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
                 await DownloadFileInternal(url, path, overwrite, retry);
             }
-            catch (IOException ex)
+            catch (IOException ex) when (!(ex is System.IO.DirectoryNotFoundException))
             {
                 retry++;
                 _logger.Debug(ex,

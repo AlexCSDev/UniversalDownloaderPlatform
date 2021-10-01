@@ -196,7 +196,7 @@ namespace UniversalDownloaderPlatform.Engine
 
                 _logger.Debug("Starting downloader");
                 OnStatusChanged(new DownloaderStatusChangedEventArgs(DownloaderStatus.Downloading));
-                await _downloadManager.Download(crawledUrls, downloadDirectory, _cancellationTokenSource.Token);
+                await _downloadManager.Download(crawledUrls, downloadDirectory, settings, _cancellationTokenSource.Token);
 
                 if (_crawlResultsExporter != null)
                 {

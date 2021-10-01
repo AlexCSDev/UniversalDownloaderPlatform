@@ -48,5 +48,7 @@ namespace UniversalDownloaderPlatform.Common.Interfaces.Models
         /// Any attempt to set properties will result in exception if this set to true. Refer to documentation for details on proper implementation.
         /// </summary>
         bool Consumed { get; set; }
+
+        //DirectoryPatternType DirectoryPattern { get; set; }
     }
 }
