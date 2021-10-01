@@ -4,9 +4,6 @@ namespace UniversalDownloaderPlatform.Common.Interfaces.Models
 {
     public interface ICrawledUrl
     {
-        //public long PostId { get; set; }
-        //public string Title { get; set; }
-        //public DateTime PublishAt { get; set; }
         string Url { get; set; }
         string Filename { get; set; }
         /// <summary>

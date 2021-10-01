@@ -22,7 +22,6 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
         private int _maxRetries;
         private int _retryMultiplier;
         private RemoteFileSizeNotAvailableAction _remoteFileSizeNotAvailableAction;
-        //private DirectoryPatternType _directoryPatternType;
         private readonly Version _httpVersion = HttpVersion.Version20;
 
         public WebDownloader(IRemoteFileSizeChecker remoteFileSizeChecker)
@@ -36,7 +35,6 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             _maxRetries = settings.MaxDownloadRetries;
             _retryMultiplier = settings.RetryMultiplier;
             _remoteFileSizeNotAvailableAction = settings.RemoteFileSizeNotAvailableAction;
-            //_directoryPatternType = settings.DirectoryPatternType;
 
             HttpClientHandler httpClientHandler = new HttpClientHandler();
             if (settings.CookieContainer != null)
