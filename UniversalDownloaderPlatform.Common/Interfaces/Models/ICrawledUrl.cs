@@ -1,4 +1,6 @@
-﻿namespace UniversalDownloaderPlatform.Common.Interfaces.Models
+﻿using System;
+
+namespace UniversalDownloaderPlatform.Common.Interfaces.Models
 {
     public interface ICrawledUrl
     {

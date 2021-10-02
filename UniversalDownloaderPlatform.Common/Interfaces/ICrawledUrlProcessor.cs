@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
 
 namespace UniversalDownloaderPlatform.Common.Interfaces
@@ -13,6 +10,6 @@ namespace UniversalDownloaderPlatform.Common.Interfaces
         /// </summary>
         /// <param name="crawledUrl">Crawled url</param>
         /// <returns></returns>
-        Task<bool> ProcessCrawledUrl(ICrawledUrl crawledUrl, string downloadDirectory);
+        Task<bool> ProcessCrawledUrl(ICrawledUrl crawledUrl, string downloadDirectory, IUniversalDownloaderPlatformSettings udpsettings);
     }
 }
