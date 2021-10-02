@@ -15,7 +15,6 @@ using UniversalDownloaderPlatform.Engine.DependencyInjection;
 using UniversalDownloaderPlatform.Common.Events;
 using UniversalDownloaderPlatform.Common.Exceptions;
 using UniversalDownloaderPlatform.Engine.Exceptions;
-using UniversalDownloaderPlatform.Engine.Stages.Downloading;
 using UniversalDownloaderPlatform.Common.Interfaces;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
 using UniversalDownloaderPlatform.Engine.Interfaces;
@@ -32,6 +31,7 @@ namespace UniversalDownloaderPlatform.Engine
         private readonly IUrlChecker _urlChecker;
         private readonly IWebDownloader _webDownloader;
         private readonly ICookieValidator _cookieValidator;
+        private readonly ICrawledUrlProcessor _crawledUrlProcessor;
         private readonly IKernel _kernel;
 
         private readonly SemaphoreSlim _initializationSemaphore;
@@ -104,6 +104,9 @@ namespace UniversalDownloaderPlatform.Engine
             if (_cookieValidator == null)
                 _logger.Debug("Cookie validator not provided");
 
+            _logger.Debug("Initializing crawled url processor");
+            _crawledUrlProcessor = _kernel.Get<ICrawledUrlProcessor>();
+
             OnStatusChanged(new DownloaderStatusChangedEventArgs(DownloaderStatus.Ready));
         }
 
@@ -164,6 +167,8 @@ namespace UniversalDownloaderPlatform.Engine
                 await _urlChecker.BeforeStart(settings);
                 await _webDownloader.BeforeStart(settings);
                 await _pluginManager.BeforeStart(settings);
+                await _crawledUrlProcessor.BeforeStart(settings);
+                await _pageCrawler.BeforeStart(settings);
 
                 if (_cookieValidator != null)
                     await _cookieValidator.ValidateCookies(settings.CookieContainer);
@@ -190,7 +195,7 @@ namespace UniversalDownloaderPlatform.Engine
 
                 _logger.Debug("Starting crawler");
                 OnStatusChanged(new DownloaderStatusChangedEventArgs(DownloaderStatus.Crawling));
-                List<ICrawledUrl> crawledUrls = await _pageCrawler.Crawl(crawlTargetInfo, settings, downloadDirectory);
+                List<ICrawledUrl> crawledUrls = await _pageCrawler.Crawl(crawlTargetInfo, downloadDirectory);
 
                 //puppeteer was closed here before
 

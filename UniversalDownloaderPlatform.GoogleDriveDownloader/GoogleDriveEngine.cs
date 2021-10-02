@@ -1,12 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Threading;
 using Google.Apis.Auth.OAuth2;
+using Google.Apis.Download;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 using Google.Apis.Util.Store;
+using HeyRed.Mime;
 using NLog;
+using UniversalDownloaderPlatform.Common.Helpers;
 using File = Google.Apis.Drive.v3.Data.File;
 
 namespace UniversalDownloaderPlatform.GoogleDriveDownloader
@@ -60,16 +64,19 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
 
         private void DownloadFileResource(File fileResource, string path, bool rootPath = true, bool overwrite = false)
         {
+            string sanitizedFilename = PathSanitizer.SanitizePath(fileResource.Name).Trim();
+
             if (rootPath)
             {
-                path = path + fileResource.Name;
+                path += sanitizedFilename.Trim();
             }
             else
             {
-                path = Path.Combine(path, fileResource.Name);
+                path = Path.Combine(path, sanitizedFilename);
             }
 
-            Logger.Info($"[Google Drive] Downloading {fileResource.Name}");
+            Logger.Info($"[Google Drive] Downloading {fileResource.Name} '{fileResource.MimeType}'");
+
             if (fileResource.MimeType != "application/vnd.google-apps.folder")
             {
                 if (System.IO.File.Exists(path))
@@ -88,18 +95,44 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
                     Directory.CreateDirectory(new FileInfo(path).DirectoryName);
                 }
 
-                var stream = new System.IO.MemoryStream();
+                bool isGoogleDocument = false;
+                string mimeType = null;
+                // https://developers.google.com/drive/api/v3/mime-types
+                // https://developers.google.com/drive/api/v3/ref-export-formats
+                if (fileResource.MimeType == "application/vnd.google-apps.document" ||
+                    fileResource.MimeType == "application/vnd.google-apps.spreadsheet" ||
+                    fileResource.MimeType == "application/vnd.google-apps.presentation")
+                {
+                    string extension = Path.GetExtension(path);
+                    if (string.IsNullOrWhiteSpace(extension))
+                    {
+                        path += ".pdf";
+                        mimeType = "application/pdf";
+                    }
+                    else
+                        mimeType = MimeTypesMap.GetMimeType(extension);
 
-                Service.Files.Get(fileResource.Id).Download(stream);
-                System.IO.FileStream file = new System.IO.FileStream(path, System.IO.FileMode.Create, System.IO.FileAccess.Write);
-                stream.WriteTo(file);
+                    isGoogleDocument = true;
+                }
 
-                file.Close();
+                using (FileStream file = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    if (isGoogleDocument)
+                    {
+                        Service.Files.Export(fileResource.Id, mimeType).Download(file);
+                    }
+                    else
+                    {
+                        IDownloadProgress downloadProgress = Service.Files.Get(fileResource.Id).DownloadWithStatus(file);
+                        if(downloadProgress.Status == DownloadStatus.Failed)
+                            throw new Exception($"Unable to download {fileResource.Name}: {downloadProgress.Exception}");
+                    }
+                }
             }
             else
             {
 
-                System.IO.Directory.CreateDirectory(path);
+                Directory.CreateDirectory(path);
                 var subFolderItems = RessInFolder(fileResource.Id);
 
                 foreach (var item in subFolderItems)
@@ -126,7 +159,7 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
                 }
 
                 request.PageToken = children.NextPageToken;
-            } while (!String.IsNullOrEmpty(request.PageToken));
+            } while (!string.IsNullOrWhiteSpace(request.PageToken));
 
             Logger.Info($"[Google Drive] Finished scanning folder {folderId}");
             return retList;

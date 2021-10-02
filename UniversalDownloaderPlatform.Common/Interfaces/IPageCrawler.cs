@@ -12,6 +12,11 @@ namespace UniversalDownloaderPlatform.Common.Interfaces
         event EventHandler<PostCrawlEventArgs> PostCrawlEnd;
         event EventHandler<NewCrawledUrlEventArgs> NewCrawledUrl;
         event EventHandler<CrawlerMessageEventArgs> CrawlerMessage;
-        Task<List<ICrawledUrl>> Crawl(ICrawlTargetInfo crawlTargetInfo, IUniversalDownloaderPlatformSettings settings, string downloadDirectory);
+        /// <summary>
+        /// Initialization function, called on every PatreonDownloader.Download call
+        /// </summary>
+        /// <returns></returns>
+        Task BeforeStart(IUniversalDownloaderPlatformSettings settings);
+        Task<List<ICrawledUrl>> Crawl(ICrawlTargetInfo crawlTargetInfo, string downloadDirectory);
     }
 }

@@ -1,19 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using NLog;
-using UniversalDownloaderPlatform.Common.Interfaces;
-using UniversalDownloaderPlatform.Common.Interfaces.Plugins;
 using UniversalDownloaderPlatform.Common.Events;
 using UniversalDownloaderPlatform.Common.Exceptions;
+using UniversalDownloaderPlatform.Common.Interfaces;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
 using UniversalDownloaderPlatform.Engine.Exceptions;
-using UniversalDownloaderPlatform.Engine.Helpers;
 using UniversalDownloaderPlatform.Engine.Interfaces;
 
-namespace UniversalDownloaderPlatform.Engine.Stages.Downloading
+namespace UniversalDownloaderPlatform.Engine
 {
     internal sealed class DownloadManager : IDownloadManager
     {

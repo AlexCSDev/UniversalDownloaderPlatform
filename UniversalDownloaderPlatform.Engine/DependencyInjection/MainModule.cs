@@ -8,7 +8,6 @@ using UniversalDownloaderPlatform.Common.Interfaces;
 using UniversalDownloaderPlatform.Common.Interfaces.Plugins;
 using UniversalDownloaderPlatform.Engine.Helpers;
 using UniversalDownloaderPlatform.Engine.Interfaces;
-using UniversalDownloaderPlatform.Engine.Stages.Downloading;
 
 namespace UniversalDownloaderPlatform.Engine.DependencyInjection
 {
