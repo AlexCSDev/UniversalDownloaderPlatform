@@ -4,9 +4,11 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using Google.Apis.Auth.OAuth2;
+using Google.Apis.Download;
 using Google.Apis.Drive.v3;
 using Google.Apis.Services;
 using Google.Apis.Util.Store;
+using HeyRed.Mime;
 using NLog;
 using UniversalDownloaderPlatform.Common.Helpers;
 using File = Google.Apis.Drive.v3.Data.File;
@@ -15,21 +17,6 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
 {
     internal class GoogleDriveEngine
     {
-        private static readonly Dictionary<string, string> _mimeTypeByExtensions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            // Documents
-            { ".TXT", "text/plain" },
-            { ".RTF", "application/rtf" },
-            { ".PDF", "application/pdf" },
-            { ".DOCX", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
-            { ".ODT", "application/vnd.oasis.opendocument.text" },
-
-            // Spreadsheets
-            { ".XLSX", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
-            { ".ODS", "application/x-vnd.oasis.opendocument.spreadsheet" },
-            { ".CSV", "text/csv" }
-        };
-
         private static readonly string[] Scopes = { DriveService.Scope.DriveReadonly };
         private static readonly string ApplicationName = "PatreonDownloader Google Drive Plugin";
 
@@ -92,19 +79,6 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
 
             if (fileResource.MimeType != "application/vnd.google-apps.folder")
             {
-                // Handle no extension and google doc file
-                string extension = Path.GetExtension(path);
-                string mimeType;
-                if (String.IsNullOrEmpty(extension))
-                {
-                    path += ".pdf";
-                    mimeType = "application/pdf";
-                }
-                else
-                {
-                    _mimeTypeByExtensions.TryGetValue(extension, out mimeType);
-                }
-
                 if (System.IO.File.Exists(path))
                 {
                     if (!overwrite)
@@ -121,25 +95,44 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
                     Directory.CreateDirectory(new FileInfo(path).DirectoryName);
                 }
 
-                using (System.IO.FileStream file = new System.IO.FileStream(path, System.IO.FileMode.Create, System.IO.FileAccess.Write, FileShare.None))
+                bool isGoogleDocument = false;
+                string mimeType = null;
+                // https://developers.google.com/drive/api/v3/mime-types
+                // https://developers.google.com/drive/api/v3/ref-export-formats
+                if (fileResource.MimeType == "application/vnd.google-apps.document" ||
+                    fileResource.MimeType == "application/vnd.google-apps.spreadsheet" ||
+                    fileResource.MimeType == "application/vnd.google-apps.presentation")
                 {
-                    // https://developers.google.com/drive/api/v3/mime-types
-                    // https://developers.google.com/drive/api/v3/ref-export-formats
-                    if (fileResource.MimeType == "application/vnd.google-apps.document" ||
-                        fileResource.MimeType == "application/vnd.google-apps.spreadsheet")
+                    string extension = Path.GetExtension(path);
+                    if (string.IsNullOrWhiteSpace(extension))
+                    {
+                        path += ".pdf";
+                        mimeType = "application/pdf";
+                    }
+                    else
+                        mimeType = MimeTypesMap.GetMimeType(extension);
+
+                    isGoogleDocument = true;
+                }
+
+                using (FileStream file = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    if (isGoogleDocument)
                     {
                         Service.Files.Export(fileResource.Id, mimeType).Download(file);
                     }
                     else
                     {
-                        Service.Files.Get(fileResource.Id).Download(file);
+                        IDownloadProgress downloadProgress = Service.Files.Get(fileResource.Id).DownloadWithStatus(file);
+                        if(downloadProgress.Status == DownloadStatus.Failed)
+                            throw new Exception($"Unable to download {fileResource.Name}: {downloadProgress.Exception}");
                     }
                 }
             }
             else
             {
 
-                System.IO.Directory.CreateDirectory(path);
+                Directory.CreateDirectory(path);
                 var subFolderItems = RessInFolder(fileResource.Id);
 
                 foreach (var item in subFolderItems)
@@ -166,7 +159,7 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
                 }
 
                 request.PageToken = children.NextPageToken;
-            } while (!String.IsNullOrEmpty(request.PageToken));
+            } while (!string.IsNullOrWhiteSpace(request.PageToken));
 
             Logger.Info($"[Google Drive] Finished scanning folder {folderId}");
             return retList;
