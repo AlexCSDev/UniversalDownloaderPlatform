@@ -1,20 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using NLog;
-using UniversalDownloaderPlatform.Common.Interfaces;
-using UniversalDownloaderPlatform.Common.Interfaces.Plugins;
 using UniversalDownloaderPlatform.Common.Events;
 using UniversalDownloaderPlatform.Common.Exceptions;
+using UniversalDownloaderPlatform.Common.Interfaces;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
 using UniversalDownloaderPlatform.Engine.Exceptions;
-using UniversalDownloaderPlatform.Engine.Helpers;
 using UniversalDownloaderPlatform.Engine.Interfaces;
-using UniversalDownloaderPlatform.Common.Enums;
 
-namespace UniversalDownloaderPlatform.Engine.Stages.Downloading
+namespace UniversalDownloaderPlatform.Engine
 {
     internal sealed class DownloadManager : IDownloadManager
     {
@@ -33,7 +29,7 @@ namespace UniversalDownloaderPlatform.Engine.Stages.Downloading
             _urlChecker = urlChecker ?? throw new ArgumentNullException(nameof(urlChecker));
         }
 
-        public async Task Download(List<ICrawledUrl> crawledUrls, string downloadDirectory, IUniversalDownloaderPlatformSettings settings, CancellationToken cancellationToken)
+        public async Task Download(List<ICrawledUrl> crawledUrls, string downloadDirectory, CancellationToken cancellationToken)
         {
             if(crawledUrls == null)
                 throw new ArgumentNullException(nameof(crawledUrls));
@@ -73,7 +69,7 @@ namespace UniversalDownloaderPlatform.Engine.Stages.Downloading
                             try
                             {
                                 _logger.Debug($"Calling url processor for: {entry.Url}");
-                                bool isDownloadAllowed = await _crawledUrlProcessor.ProcessCrawledUrl(entry, downloadDirectory, settings);
+                                bool isDownloadAllowed = await _crawledUrlProcessor.ProcessCrawledUrl(entry, downloadDirectory);
 
                                 if (isDownloadAllowed)
                                 {

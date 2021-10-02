@@ -232,7 +232,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                 _logger.Debug(ex,$"Encountered error while trying to download {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
                 await DownloadFileInternal(url, path, overwrite, retry);
             }
-            catch (IOException ex) when (!(ex is System.IO.DirectoryNotFoundException))
+            catch (IOException ex) when (!(ex is DirectoryNotFoundException))
             {
                 retry++;
                 _logger.Debug(ex,

@@ -77,18 +77,15 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
 
         private void DownloadFileResource(File fileResource, string path, bool rootPath = true, bool overwrite = false)
         {
-            StringBuilder normalizeName = new StringBuilder(fileResource.Name);
-
-            foreach (char invalidChar in UniversalDirectoryPatternFormat.InvalidPathChars)
-                normalizeName.Replace(invalidChar.ToString(), String.Empty);
+            string sanitizedFilename = PathSanitizer.SanitizePath(fileResource.Name).Trim();
 
             if (rootPath)
             {
-                path += normalizeName.ToString().Trim();
+                path += sanitizedFilename.Trim();
             }
             else
             {
-                path = Path.Combine(path, normalizeName.ToString().Trim());
+                path = Path.Combine(path, sanitizedFilename);
             }
 
             Logger.Info($"[Google Drive] Downloading {fileResource.Name} '{fileResource.MimeType}'");

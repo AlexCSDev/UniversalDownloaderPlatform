@@ -10,6 +10,6 @@ namespace UniversalDownloaderPlatform.Engine.Interfaces
     internal interface IDownloadManager
     {
         event EventHandler<FileDownloadedEventArgs> FileDownloaded;
-        Task Download(List<ICrawledUrl> crawledUrls, string downloadDirectory, IUniversalDownloaderPlatformSettings settings, CancellationToken cancellationToken);
+        Task Download(List<ICrawledUrl> crawledUrls, string downloadDirectory, CancellationToken cancellationToken);
     }
 }
