@@ -75,7 +75,8 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
                 path = Path.Combine(path, sanitizedFilename);
             }
 
-            Logger.Info($"[Google Drive] Downloading {fileResource.Name} '{fileResource.MimeType}'");
+            Logger.Info($"[Google Drive] Downloading {fileResource.Name}");
+            Logger.Debug($"[Google Drive] {fileResource.Name} mime type is: {fileResource.MimeType}");
 
             if (fileResource.MimeType != "application/vnd.google-apps.folder")
             {
