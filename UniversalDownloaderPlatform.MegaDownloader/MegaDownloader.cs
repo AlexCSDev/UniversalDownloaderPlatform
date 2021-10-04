@@ -97,7 +97,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
                 }
 
                 folders.Add(new KeyValuePair<string, MegaFolder>(node.Id,
-                    new MegaFolder { Name = node.Name, ParentId = node.ParentId }));
+                    new MegaFolder { Name = node.Name.Trim(), ParentId = node.ParentId }));
             }
 
             foreach (var folder in folders)
@@ -108,8 +108,8 @@ namespace UniversalDownloaderPlatform.MegaDownloader
                 while (parentId != null)
                 {
                     var parentFolder = folders.FirstOrDefault(x => x.Key == parentId);
-                    path = parentFolder.Value.Name + "/" + path;
-                    keyPath = parentFolder.Key + "/" + keyPath;
+                    path = Path.Combine(parentFolder.Value.Name, path);
+                    keyPath = Path.Combine(parentFolder.Key, keyPath);
                     parentId = parentFolder.Value.ParentId;
                 }
 
