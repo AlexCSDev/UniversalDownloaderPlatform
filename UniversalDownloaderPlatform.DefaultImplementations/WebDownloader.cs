@@ -177,7 +177,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
 
             try
             {
-                using (var request = new HttpRequestMessage(HttpMethod.Get, url) { Version = _httpVersion })
+                using (var request = new HttpRequestMessage(HttpMethod.Get, url) {Version = _httpVersion})
                 {
                     using (HttpResponseMessage responseMessage =
                         await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
@@ -193,7 +193,9 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                                 case HttpStatusCode.NotFound:
                                 case HttpStatusCode.MethodNotAllowed:
                                 case HttpStatusCode.Gone:
-                                    throw new WebException($"Error status code returned: {responseMessage.StatusCode}");
+                                    throw new DownloadException(
+                                        $"Error status code returned: {responseMessage.StatusCode}",
+                                        responseMessage.StatusCode, await responseMessage.Content.ReadAsStringAsync());
                                 case HttpStatusCode.Moved:
                                     string newLocation = responseMessage.Headers.Location.ToString();
                                     _logger.Debug(
@@ -202,24 +204,28 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                                     return;
                                 case HttpStatusCode.TooManyRequests:
                                     retryTooManyRequests++;
-                                    _logger.Debug($"Too many requests for {url}, waiting for {retryTooManyRequests * _retryMultiplier} seconds...");
+                                    _logger.Debug(
+                                        $"Too many requests for {url}, waiting for {retryTooManyRequests * _retryMultiplier} seconds...");
                                     await DownloadFileInternal(url, path, overwrite, 0, retryTooManyRequests);
                                     return;
                             }
 
                             retry++;
 
-                            _logger.Debug($"{url} returned status code {responseMessage.StatusCode}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)...");
+                            _logger.Debug(
+                                $"{url} returned status code {responseMessage.StatusCode}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)...");
                             await DownloadFileInternal(url, path, overwrite, retry);
                             return;
                         }
 
                         _logger.Debug($"Starting download: {url}");
                         using (Stream contentStream = await responseMessage.Content.ReadAsStreamAsync(),
-                            stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 4096, true))
+                            stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 4096,
+                                true))
                         {
                             await contentStream.CopyToAsync(stream, 4096);
                         }
+
                         _logger.Debug($"Finished download: {url}");
 
                         FileInfo fileInfo = new FileInfo(path);
@@ -228,8 +234,9 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
 
                         if (remoteFileSize > 0 && fileSize != remoteFileSize)
                         {
-                            _logger.Warn($"Downloaded file size differs from the size returned by server. Local size: {fileSize}, remote size: {remoteFileSize}. File {url} will be redownloaded.");
-                            
+                            _logger.Warn(
+                                $"Downloaded file size differs from the size returned by server. Local size: {fileSize}, remote size: {remoteFileSize}. File {url} will be redownloaded.");
+
                             File.Delete(path);
 
                             retry++;
@@ -237,14 +244,16 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                             await DownloadFileInternal(url, path, overwrite, retry);
                             return;
                         }
+
                         _logger.Debug($"File size check passed for: {url}");
                     }
                 }
             }
-            catch(TaskCanceledException ex)
+            catch (TaskCanceledException ex)
             {
                 retry++;
-                _logger.Debug(ex,$"Encountered error while trying to download {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
+                _logger.Debug(ex,
+                    $"Encountered error while trying to download {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
                 await DownloadFileInternal(url, path, overwrite, retry);
             }
             catch (IOException ex) when (!(ex is DirectoryNotFoundException))
@@ -260,6 +269,10 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                 _logger.Debug(ex,
                     $"Encountered connection error while trying to access {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
                 await DownloadFileInternal(url, path, overwrite, retry);
+            }
+            catch (DownloadException ex)
+            {
+                throw;
             }
             catch (Exception ex)
             {
