@@ -1,12 +1,15 @@
 ﻿using System;
+using System.Collections;
 using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Threading.Tasks;
 using NLog;
 using UniversalDownloaderPlatform.Common.Enums;
 using UniversalDownloaderPlatform.Common.Exceptions;
+using UniversalDownloaderPlatform.Common.Helpers;
 using UniversalDownloaderPlatform.Common.Interfaces;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
 using UniversalDownloaderPlatform.DefaultImplementations.Interfaces;
@@ -17,6 +20,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
     public class WebDownloader : IWebDownloader
     {
         private HttpClient _httpClient;
+        private HttpClientHandler _httpClientHandler;
         private readonly IRemoteFileSizeChecker _remoteFileSizeChecker;
         private readonly Logger _logger = LogManager.GetCurrentClassLogger();
         private int _maxRetries;
@@ -30,20 +34,20 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                 remoteFileSizeChecker ?? throw new ArgumentNullException(nameof(remoteFileSizeChecker));
         }
 
-        public async Task BeforeStart(IUniversalDownloaderPlatformSettings settings)
+        public virtual async Task BeforeStart(IUniversalDownloaderPlatformSettings settings)
         {
             _maxRetries = settings.MaxDownloadRetries;
             _retryMultiplier = settings.RetryMultiplier;
             _remoteFileSizeNotAvailableAction = settings.RemoteFileSizeNotAvailableAction;
 
-            HttpClientHandler httpClientHandler = new HttpClientHandler();
+            _httpClientHandler = new HttpClientHandler();
             if (settings.CookieContainer != null)
             {
-                httpClientHandler.UseCookies = true;
-                httpClientHandler.CookieContainer = settings.CookieContainer;
+                _httpClientHandler.UseCookies = true;
+                _httpClientHandler.CookieContainer = settings.CookieContainer;
             }
 
-            _httpClient = new HttpClient(httpClientHandler);
+            _httpClient = new HttpClient(_httpClientHandler);
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(settings.UserAgent);
 
             await _remoteFileSizeChecker.BeforeStart(settings);
@@ -57,6 +61,17 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                 throw new ArgumentException("Argument cannot be null or empty", nameof(path));
 
             await DownloadFileInternal(url, path, overwrite);
+        }
+
+        public virtual void UpdateCookies(CookieContainer cookieContainer)
+        {
+            if(!_httpClientHandler.UseCookies)
+                throw new InvalidOperationException("Cookies are not enabled");
+
+            foreach (Cookie cookie in CookieHelper.GetAllCookies(cookieContainer))
+            {
+                _httpClientHandler.CookieContainer.Add(cookie);
+            }
         }
 
         private async Task DownloadFileInternal(string url, string path, bool overwrite, int retry = 0, int retryTooManyRequests = 0)
@@ -277,7 +292,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
 
             try
             {
-                using (var request = new HttpRequestMessage(HttpMethod.Get, url) { Version = _httpVersion })
+                using (var request = new HttpRequestMessage(HttpMethod.Get, url) {Version = _httpVersion})
                 {
                     using (HttpResponseMessage responseMessage =
                         await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
@@ -292,7 +307,8 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                                 case HttpStatusCode.NotFound:
                                 case HttpStatusCode.MethodNotAllowed:
                                 case HttpStatusCode.Gone:
-                                    throw new WebException($"Error status code returned: {responseMessage.StatusCode}");
+                                    throw new DownloadException($"Error status code returned: {responseMessage.StatusCode}", 
+                                        responseMessage.StatusCode, await responseMessage.Content.ReadAsStringAsync());
                                 case HttpStatusCode.Moved:
                                     string newLocation = responseMessage.Headers.Location.ToString();
                                     _logger.Debug(
@@ -300,7 +316,8 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                                     return await DownloadStringInternal(newLocation);
                                 case HttpStatusCode.TooManyRequests:
                                     retryTooManyRequests++;
-                                    _logger.Debug($"Too many requests for {url}, waiting for {retryTooManyRequests * _retryMultiplier} seconds...");
+                                    _logger.Debug(
+                                        $"Too many requests for {url}, waiting for {retryTooManyRequests * _retryMultiplier} seconds...");
                                     return await DownloadStringInternal(url, 0, retryTooManyRequests);
                             }
 
@@ -335,6 +352,10 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                 _logger.Debug(ex,
                     $"Encountered connection error while trying to access {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
                 return await DownloadStringInternal(url, retry);
+            }
+            catch (DownloadException ex)
+            {
+                throw;
             }
             catch (Exception ex)
             {

@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Net;
+using System.Threading.Tasks;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
 
 namespace UniversalDownloaderPlatform.Common.Interfaces
@@ -9,6 +10,13 @@ namespace UniversalDownloaderPlatform.Common.Interfaces
         /// Initialization function, called on every PatreonDownloader.Download call
         /// </summary>
         Task BeforeStart(IUniversalDownloaderPlatformSettings settings);
+
+        /// <summary>
+        /// Add new cookies and replace existing ones
+        /// </summary>
+        /// <param name="cookieContainer"></param>
+        void UpdateCookies(CookieContainer cookieContainer);
+
         /// <summary>
         /// Download file
         /// </summary>
