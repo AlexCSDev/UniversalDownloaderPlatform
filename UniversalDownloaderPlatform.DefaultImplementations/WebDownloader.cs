@@ -197,6 +197,10 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                                         $"Error status code returned: {responseMessage.StatusCode}",
                                         responseMessage.StatusCode, await responseMessage.Content.ReadAsStringAsync());
                                 case HttpStatusCode.Moved:
+                                case HttpStatusCode.Found:
+                                case HttpStatusCode.SeeOther:
+                                case HttpStatusCode.TemporaryRedirect:
+                                case HttpStatusCode.PermanentRedirect:
                                     string newLocation = responseMessage.Headers.Location.ToString();
                                     _logger.Debug(
                                         $"{url} has been moved to: {newLocation}, retrying using new url");
@@ -307,6 +311,12 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             {
                 using (var request = new HttpRequestMessage(HttpMethod.Get, url) {Version = _httpVersion})
                 {
+                    //Add some additional headers to better mimic a real browser
+                    request.Headers.Add("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
+                    request.Headers.Add("Accept-Language", "en-US,en;q=0.5");
+                    request.Headers.Add("Cache-Control", "no-cache");
+                    request.Headers.Add("DNT", "1");
+
                     using (HttpResponseMessage responseMessage =
                         await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
                     {
@@ -323,6 +333,10 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                                     throw new DownloadException($"Error status code returned: {responseMessage.StatusCode}", 
                                         responseMessage.StatusCode, await responseMessage.Content.ReadAsStringAsync());
                                 case HttpStatusCode.Moved:
+                                case HttpStatusCode.Found:
+                                case HttpStatusCode.SeeOther:
+                                case HttpStatusCode.TemporaryRedirect:
+                                case HttpStatusCode.PermanentRedirect:
                                     string newLocation = responseMessage.Headers.Location.ToString();
                                     _logger.Debug(
                                         $"{url} has been moved to: {newLocation}, retrying using new url");
