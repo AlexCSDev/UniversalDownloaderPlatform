@@ -61,7 +61,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
             else
             {
                 (_, string id, _) = MegaUrlDataExtractor.Extract(crawledUrl.Url);
-                INodeInfo fileNodeInfo = await _client.GetNodeFromLinkAsync(uri);
+                INode fileNodeInfo = await _client.GetNodeFromLinkAsync(uri);
                 string path = Path.Combine(downloadPath, crawledUrl.DownloadPath,
                     $"{id.Substring(0, 5)}_{fileNodeInfo.Name}");
                 await DownloadFileAsync(null, uri, fileNodeInfo, path, overwriteFiles);
@@ -135,7 +135,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
             }
         }
 
-        private async Task DownloadFileAsync(INode fileNode, Uri fileUri, INodeInfo fileNodeInfo, string path, bool overwrite, int retry = 0) //MegaApiClient is a mess, that's why we pass so many parameters
+        private async Task DownloadFileAsync(INode fileNode, Uri fileUri, INode fileNodeInfo, string path, bool overwrite, int retry = 0) //MegaApiClient is a mess, that's why we pass so many parameters
         {
             if(fileNode == null && fileNodeInfo == null)
                 throw new ArgumentException("fileNode or fileNodeInfo should be filled");
@@ -144,7 +144,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
             if (fileNode != null && fileNodeInfo != null)
                 throw new ArgumentException("Both fileNode and fileNodeInfo cannot be filled at the same time");
 
-            INodeInfo nodeInfo = fileNode != null ? fileNode : fileNodeInfo;
+            INode nodeInfo = fileNode != null ? fileNode : fileNodeInfo;
             if (nodeInfo.Type != NodeType.File)
                 throw new Exception("Node is not a file");
 

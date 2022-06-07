@@ -44,6 +44,8 @@ namespace UniversalDownloaderPlatform.Common.Interfaces.Models
         /// </summary>
         RemoteFileSizeNotAvailableAction RemoteFileSizeNotAvailableAction { get; set; }
 
+        string ProxyServerAddress { get; set; }
+
         /// <summary>
         /// Any attempt to set properties will result in exception if this set to true. Refer to documentation for details on proper implementation.
         /// </summary>

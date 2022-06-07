@@ -24,6 +24,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations.Models
         private int _maxDownloadRetries;
         private int _retryMultiplier;
         private RemoteFileSizeNotAvailableAction _remoteFileSizeNotAvailableAction;
+        private string _proxyServerAddress;
         private bool _consumed;
 
         public bool OverwriteFiles
@@ -84,6 +85,12 @@ namespace UniversalDownloaderPlatform.DefaultImplementations.Models
         {
             get => _remoteFileSizeNotAvailableAction;
             set => ConsumableSetter.Set(Consumed, ref _remoteFileSizeNotAvailableAction, value);
+        }
+
+        public string ProxyServerAddress
+        {
+            get => _proxyServerAddress;
+            set => ConsumableSetter.Set(Consumed, ref _proxyServerAddress, value);
         }
 
         public bool Consumed

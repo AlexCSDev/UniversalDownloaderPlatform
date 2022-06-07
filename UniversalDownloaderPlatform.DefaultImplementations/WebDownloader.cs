@@ -47,6 +47,9 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                 _httpClientHandler.CookieContainer = settings.CookieContainer;
             }
 
+            if(!string.IsNullOrWhiteSpace(settings.ProxyServerAddress))
+                _httpClientHandler.Proxy = new WebProxy(settings.ProxyServerAddress);
+
             _httpClient = new HttpClient(_httpClientHandler);
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(settings.UserAgent);
 
