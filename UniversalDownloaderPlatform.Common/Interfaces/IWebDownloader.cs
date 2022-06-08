@@ -14,8 +14,8 @@ namespace UniversalDownloaderPlatform.Common.Interfaces
         /// <summary>
         /// Add new cookies and replace existing ones
         /// </summary>
-        /// <param name="cookieContainer"></param>
-        void UpdateCookies(CookieContainer cookieContainer);
+        /// <param name="cookieCollection"></param>
+        void UpdateCookies(CookieCollection cookieCollection);
 
         /// <summary>
         /// Download file

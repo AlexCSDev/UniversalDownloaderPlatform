@@ -19,8 +19,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
     //TODO: Make disposable?
     public class WebDownloader : IWebDownloader
     {
-        private HttpClient _httpClient;
-        private HttpClientHandler _httpClientHandler;
+        private HttpCookieClient _httpCookieClient;
         private readonly IRemoteFileSizeChecker _remoteFileSizeChecker;
         private readonly Logger _logger = LogManager.GetCurrentClassLogger();
         private int _maxRetries;
@@ -40,18 +39,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             _retryMultiplier = settings.RetryMultiplier;
             _remoteFileSizeNotAvailableAction = settings.RemoteFileSizeNotAvailableAction;
 
-            _httpClientHandler = new HttpClientHandler();
-            if (settings.CookieContainer != null)
-            {
-                _httpClientHandler.UseCookies = true;
-                _httpClientHandler.CookieContainer = settings.CookieContainer;
-            }
-
-            if(!string.IsNullOrWhiteSpace(settings.ProxyServerAddress))
-                _httpClientHandler.Proxy = new WebProxy(settings.ProxyServerAddress);
-
-            _httpClient = new HttpClient(_httpClientHandler);
-            _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(settings.UserAgent);
+            _httpCookieClient = new HttpCookieClient(settings.UserAgent, settings.CookieContainer?.GetAllCookies(), !string.IsNullOrWhiteSpace(settings.ProxyServerAddress) ? new WebProxy(settings.ProxyServerAddress) : null);
 
             await _remoteFileSizeChecker.BeforeStart(settings);
         }
@@ -66,15 +54,9 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             await DownloadFileInternal(url, path, overwrite);
         }
 
-        public virtual void UpdateCookies(CookieContainer cookieContainer)
+        public virtual void UpdateCookies(CookieCollection cookieCollection)
         {
-            if(!_httpClientHandler.UseCookies)
-                throw new InvalidOperationException("Cookies are not enabled");
-
-            foreach (Cookie cookie in CookieHelper.GetAllCookies(cookieContainer))
-            {
-                _httpClientHandler.CookieContainer.Add(cookie);
-            }
+            _httpCookieClient.AddOrUpdateCookies(cookieCollection);
         }
 
         private async Task DownloadFileInternal(string url, string path, bool overwrite, int retry = 0, int retryTooManyRequests = 0)
@@ -183,7 +165,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                 using (var request = new HttpRequestMessage(HttpMethod.Get, url) {Version = _httpVersion})
                 {
                     using (HttpResponseMessage responseMessage =
-                        await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
+                        await _httpCookieClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
                     {
                         if (!responseMessage.IsSuccessStatusCode)
                         {
@@ -321,7 +303,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                     request.Headers.Add("DNT", "1");
 
                     using (HttpResponseMessage responseMessage =
-                        await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
+                        await _httpCookieClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
                     {
                         if (!responseMessage.IsSuccessStatusCode)
                         {
