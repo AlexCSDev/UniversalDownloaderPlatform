@@ -22,14 +22,16 @@ namespace UniversalDownloaderPlatform.Common.Interfaces
         /// </summary>
         /// <param name="url">File url</param>
         /// <param name="path">Path where the file should be saved</param>
+        /// <param name="refererUrl">Url to be placed into the referer header, can be null</param>
         /// <param name="overwrite">Should it be allowed to overwrite file?</param>
-        Task DownloadFile(string url, string path, bool overwrite = false);
+        Task DownloadFile(string url, string path, string refererUrl = null, bool overwrite = false);
 
         /// <summary>
         /// Download url as string data
         /// </summary>
         /// <param name="url">Url to download</param>
+        /// <param name="refererUrl">Url to be placed into the referer header, can be null</param>
         /// <returns>String</returns>
-        Task<string> DownloadString(string url);
+        Task<string> DownloadString(string url, string refererUrl = null);
     }
 }

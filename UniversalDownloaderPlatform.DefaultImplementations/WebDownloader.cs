@@ -58,14 +58,14 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             await _remoteFileSizeChecker.BeforeStart(settings);
         }
 
-        public virtual async Task DownloadFile(string url, string path, bool overwrite = false)
+        public virtual async Task DownloadFile(string url, string path, string refererUrl = null, bool overwrite = false)
         {
             if(string.IsNullOrEmpty(url))
                 throw new ArgumentException("Argument cannot be null or empty", nameof(url));
             if(string.IsNullOrEmpty(path))
                 throw new ArgumentException("Argument cannot be null or empty", nameof(path));
 
-            await DownloadFileInternal(url, path, overwrite);
+            await DownloadFileInternal(url, path, refererUrl, overwrite);
         }
 
         public virtual void UpdateCookies(CookieCollection cookieCollection)
@@ -79,7 +79,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             }
         }
 
-        private async Task DownloadFileInternal(string url, string path, bool overwrite, int retry = 0, int retryTooManyRequests = 0)
+        private async Task DownloadFileInternal(string url, string path, string refererUrl, bool overwrite, int retry = 0, int retryTooManyRequests = 0)
         {
             if (retry > 0)
             {
@@ -184,6 +184,18 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             {
                 using (var request = new HttpRequestMessage(HttpMethod.Get, url) {Version = _httpVersion})
                 {
+                    if (!string.IsNullOrWhiteSpace(refererUrl))
+                    {
+                        try
+                        {
+                            request.Headers.Referrer = new Uri(refererUrl);
+                        }
+                        catch (UriFormatException ex)
+                        {
+                            _logger.Error(ex, $"Invalid referer url: {refererUrl}. Error: {ex}");
+                        }
+                    }
+
                     using (HttpResponseMessage responseMessage =
                         await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
                     {
@@ -209,13 +221,13 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                                     string newLocation = responseMessage.Headers.Location.ToString();
                                     _logger.Debug(
                                         $"{url} has been moved to: {newLocation}, retrying using new url");
-                                    await DownloadFileInternal(newLocation, path, overwrite);
+                                    await DownloadFileInternal(newLocation, refererUrl, path, overwrite);
                                     return;
                                 case HttpStatusCode.TooManyRequests:
                                     retryTooManyRequests++;
                                     _logger.Debug(
                                         $"Too many requests for {url}, waiting for {retryTooManyRequests * _retryMultiplier} seconds...");
-                                    await DownloadFileInternal(url, path, overwrite, 0, retryTooManyRequests);
+                                    await DownloadFileInternal(url, path, refererUrl, overwrite, 0, retryTooManyRequests);
                                     return;
                             }
 
@@ -223,7 +235,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
 
                             _logger.Debug(
                                 $"{url} returned status code {responseMessage.StatusCode}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)...");
-                            await DownloadFileInternal(url, path, overwrite, retry);
+                            await DownloadFileInternal(url, path, refererUrl, overwrite, retry);
                             return;
                         }
 
@@ -250,7 +262,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
 
                             retry++;
 
-                            await DownloadFileInternal(url, path, overwrite, retry);
+                            await DownloadFileInternal(url, path, refererUrl, overwrite, retry);
                             return;
                         }
 
@@ -263,21 +275,21 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                 retry++;
                 _logger.Debug(ex,
                     $"Encountered error while trying to download {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
-                await DownloadFileInternal(url, path, overwrite, retry);
+                await DownloadFileInternal(url, path, refererUrl, overwrite, retry);
             }
             catch (IOException ex) when (!(ex is DirectoryNotFoundException))
             {
                 retry++;
                 _logger.Debug(ex,
                     $"Encountered IO error while trying to access {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
-                await DownloadFileInternal(url, path, overwrite, retry);
+                await DownloadFileInternal(url, path, refererUrl, overwrite, retry);
             }
             catch (SocketException ex)
             {
                 retry++;
                 _logger.Debug(ex,
                     $"Encountered connection error while trying to access {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
-                await DownloadFileInternal(url, path, overwrite, retry);
+                await DownloadFileInternal(url, path, refererUrl, overwrite, retry);
             }
             catch (DownloadException ex)
             {
@@ -289,15 +301,15 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             }
         }
 
-        public virtual async Task<string> DownloadString(string url)
+        public virtual async Task<string> DownloadString(string url, string refererUrl = null)
         {
             if(string.IsNullOrEmpty(url))
                 throw new ArgumentException("Argument cannot be null or empty", nameof(url));
 
-            return await DownloadStringInternal(url);
+            return await DownloadStringInternal(url, refererUrl);
         }
 
-        private async Task<string> DownloadStringInternal(string url, int retry = 0, int retryTooManyRequests = 0)
+        private async Task<string> DownloadStringInternal(string url, string refererUrl, int retry = 0, int retryTooManyRequests = 0)
         {
             if (retry > 0)
             {
@@ -322,6 +334,18 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                     request.Headers.Add("Cache-Control", "no-cache");
                     request.Headers.Add("DNT", "1");
 
+                    if (!string.IsNullOrWhiteSpace(refererUrl))
+                    {
+                        try
+                        {
+                            request.Headers.Referrer = new Uri(refererUrl);
+                        }
+                        catch (UriFormatException ex)
+                        {
+                            _logger.Error($"Invalid referer url: {refererUrl}");
+                        }
+                    }
+
                     using (HttpResponseMessage responseMessage =
                         await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
                     {
@@ -345,19 +369,19 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                                     string newLocation = responseMessage.Headers.Location.ToString();
                                     _logger.Debug(
                                         $"{url} has been moved to: {newLocation}, retrying using new url");
-                                    return await DownloadStringInternal(newLocation);
+                                    return await DownloadStringInternal(newLocation, refererUrl);
                                 case HttpStatusCode.TooManyRequests:
                                     retryTooManyRequests++;
                                     _logger.Debug(
                                         $"Too many requests for {url}, waiting for {retryTooManyRequests * _retryMultiplier} seconds...");
-                                    return await DownloadStringInternal(url, 0, retryTooManyRequests);
+                                    return await DownloadStringInternal(url, refererUrl, 0, retryTooManyRequests);
                             }
 
                             retry++;
 
                             _logger.Debug(
                                 $"{url} returned status code {responseMessage.StatusCode}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)...");
-                            return await DownloadStringInternal(url, retry);
+                            return await DownloadStringInternal(url, refererUrl, retry);
                         }
 
                         return await responseMessage.Content.ReadAsStringAsync();
@@ -369,21 +393,21 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                 retry++;
                 _logger.Debug(ex,
                     $"Encountered timeout error while trying to access {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
-                return await DownloadStringInternal(url, retry);
+                return await DownloadStringInternal(url, refererUrl, retry);
             }
             catch (IOException ex)
             {
                 retry++;
                 _logger.Debug(ex,
                     $"Encountered IO error while trying to access {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
-                return await DownloadStringInternal(url, retry);
+                return await DownloadStringInternal(url, refererUrl, retry);
             }
             catch (SocketException ex)
             {
                 retry++;
                 _logger.Debug(ex,
                     $"Encountered connection error while trying to access {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
-                return await DownloadStringInternal(url, retry);
+                return await DownloadStringInternal(url, refererUrl, retry);
             }
             catch (DownloadException ex)
             {

@@ -35,12 +35,12 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(settings.UserAgent);
         }
 
-        public async Task<long> GetRemoteFileSize(string url)
+        public async Task<long> GetRemoteFileSize(string url, string refererUrl = null)
         {
-            return await GetRemoteFileSizeInternal(url);
+            return await GetRemoteFileSizeInternal(url, refererUrl);
         }
 
-        private async Task<long> GetRemoteFileSizeInternal(string url, int retry = 0, int retryTooManyRequests = 0)
+        private async Task<long> GetRemoteFileSizeInternal(string url, string refererUrl, int retry = 0, int retryTooManyRequests = 0)
         {
             if (retry > 0)
             {
@@ -59,6 +59,18 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             {
                 using (var request = new HttpRequestMessage(HttpMethod.Head, url) { Version = _httpVersion })
                 {
+                    if (!string.IsNullOrWhiteSpace(refererUrl))
+                    {
+                        try
+                        {
+                            request.Headers.Referrer = new Uri(refererUrl);
+                        }
+                        catch (UriFormatException ex)
+                        {
+                            _logger.Error(ex, $"[Remote size check] Invalid referer url: {refererUrl}. Error: {ex}");
+                        }
+                    }
+
                     using (HttpResponseMessage responseMessage =
                         await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
                     {
@@ -78,18 +90,18 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                                     string newLocation = responseMessage.Headers.Location.ToString();
                                     _logger.Debug(
                                         $"[Remote size check] {url} has been moved to: {newLocation}, retrying using new url");
-                                    return await GetRemoteFileSizeInternal(newLocation);
+                                    return await GetRemoteFileSizeInternal(newLocation, refererUrl);
                                 case HttpStatusCode.TooManyRequests:
                                     retryTooManyRequests++;
                                     _logger.Debug($"[Remote size check] Too many requests for {url}, waiting for {retryTooManyRequests * _retryMultiplier} seconds...");
-                                    return await GetRemoteFileSizeInternal(url, 0, retryTooManyRequests);
+                                    return await GetRemoteFileSizeInternal(url, refererUrl, 0, retryTooManyRequests);
                             }
 
                             retry++;
 
                             _logger.Debug(
                                 $"Remote file size check: {url} returned status code {responseMessage.StatusCode}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)...");
-                            return await GetRemoteFileSizeInternal(url, retry);
+                            return await GetRemoteFileSizeInternal(url, refererUrl, retry);
                         }
 
                         return responseMessage.Content.Headers.ContentLength ?? 0;
@@ -100,21 +112,21 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             {
                 retry++;
                 _logger.Debug(ex, $"Encountered error while trying to download {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
-                return await GetRemoteFileSizeInternal(url, retry);
+                return await GetRemoteFileSizeInternal(url, refererUrl, retry);
             }
             catch (IOException ex)
             {
                 retry++;
                 _logger.Debug(ex,
                     $"Encountered IO error while trying to access {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
-                return await GetRemoteFileSizeInternal(url, retry);
+                return await GetRemoteFileSizeInternal(url, refererUrl, retry);
             }
             catch (SocketException ex)
             {
                 retry++;
                 _logger.Debug(ex,
                     $"Encountered connection error while trying to access {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
-                return await GetRemoteFileSizeInternal(url, retry);
+                return await GetRemoteFileSizeInternal(url, refererUrl, retry);
             }
             catch (Exception ex)
             {
