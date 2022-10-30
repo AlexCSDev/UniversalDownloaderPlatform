@@ -104,6 +104,9 @@ namespace UniversalDownloaderPlatform.Engine
 
         public async Task<List<string>> ExtractSupportedUrls(string htmlContents)
         {
+            if(string.IsNullOrWhiteSpace(htmlContents))
+                return new List<string>();
+
             HashSet<string> retHashSet = new HashSet<string>();
             if (_plugins != null && _plugins.Count > 0)
             {

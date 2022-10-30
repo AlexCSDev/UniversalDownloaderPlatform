@@ -21,10 +21,10 @@ namespace UniversalDownloaderPlatform.Common.Interfaces
         Task DownloadCrawledUrl(ICrawledUrl crawledUrl, string downloadDirectory);
 
         /// <summary>
-        /// Run entry contents through every plugin to extract supported urls
+        /// Run entry contents through every plugin to extract supported urls.
         /// </summary>
         /// <param name="htmlContents"></param>
-        /// <returns></returns>
+        /// <returns>List of extracted urls. If htmlContents is empty or null returns empty list.</returns>
         Task<List<string>> ExtractSupportedUrls(string htmlContents);
     }
 }
