@@ -6,49 +6,54 @@ using UniversalDownloaderPlatform.Common.Enums;
 
 namespace UniversalDownloaderPlatform.Common.Interfaces.Models
 {
+    /// <summary>
+    /// Interface implementing basic settings UniversalDownloader expects.
+    /// No changes should be made to values once this has been passed to UniversalDownloader!
+    /// </summary>
     public interface IUniversalDownloaderPlatformSettings
     {
         /// <summary>
-        /// If true IWebDownloader will be allowed to overwrite files
-        /// </summary>
-        bool OverwriteFiles { get; set; }
-
-        /// <summary>
         /// Cookie container with all required cookies, can be null
         /// </summary>
-        CookieContainer CookieContainer { get; set; }
+        CookieContainer CookieContainer { get; init; }
 
         /// <summary>
         /// User agent string
         /// </summary>
-        string UserAgent { get; set; }
+        string UserAgent { get; init; }
 
         /// <summary>
         /// Urls containing anything from this list will be ignored by all components
         /// </summary>
-        List<string> UrlBlackList { get; set; }
+        List<string> UrlBlackList { get; init; }
 
         /// <summary>
         /// The amount of times to retry download on failure
         /// </summary>
-        int MaxDownloadRetries { get; set; }
+        int MaxDownloadRetries { get; init; }
 
         /// <summary>
         /// Multiplier which will be used to calculate time between retries
         /// </summary>
-        int RetryMultiplier { get; set; }
+        int RetryMultiplier { get; init; }
 
         /// <summary>
-        /// What downloader components should do when the remote file's size not available (Content-Length is 0 or empty for http(s) requests) and cannot be used to check existing file for validity
+        /// What downloader components should do when the file already exists on disk
         /// (might be ignored by plugins and non-default web downloader class)
         /// </summary>
-        RemoteFileSizeNotAvailableAction RemoteFileSizeNotAvailableAction { get; set; }
-
-        string ProxyServerAddress { get; set; }
+        FileExistsAction FileExistsAction { get; init; }
 
         /// <summary>
-        /// Any attempt to set properties will result in exception if this set to true. Refer to documentation for details on proper implementation.
+        /// Check remote file size for already existing files if available
+        /// (might be ignored by plugins and non-default web downloader class)
         /// </summary>
-        bool Consumed { get; set; }
+        bool IsCheckRemoteFileSize { get; init; }
+
+        string ProxyServerAddress { get; init; }
+
+        /// <summary>
+        /// The base download directory for the downloaded files. If not set will be set to appdir\download\ICrawlTargetInfo.SaveDirectory
+        /// </summary>
+        string DownloadDirectory { get; set; } //seems like you can't clone records implementing interface using *with* keyword, so can't use init here unfortunately.
     }
 }

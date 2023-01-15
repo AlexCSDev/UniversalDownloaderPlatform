@@ -5,6 +5,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using CG.Web.MegaApiClient;
 using NLog;
+using UniversalDownloaderPlatform.Common.Enums;
+using UniversalDownloaderPlatform.Common.Helpers;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
 
 namespace UniversalDownloaderPlatform.MegaDownloader
@@ -33,7 +35,9 @@ namespace UniversalDownloaderPlatform.MegaDownloader
         private MegaApiClient _client;
 
         private readonly ILogger _logger = LogManager.GetCurrentClassLogger();
-        private readonly int _maxRetries = 10; //todo: load from IUniversalDownloaderPlatformSettings
+
+        private int _maxRetries = 10;
+        private bool _isCheckRemoteFileSize;
 
         public MegaDownloader(MegaCredentials credentials = null)
         {
@@ -48,7 +52,13 @@ namespace UniversalDownloaderPlatform.MegaDownloader
             }
         }
 
-        public async Task DownloadUrlAsync(ICrawledUrl crawledUrl, string downloadPath, bool overwriteFiles = false)
+        public void BeforeStart(int maxRetries, bool isCheckRemoteFileSize)
+        {
+            _maxRetries = maxRetries;
+            _isCheckRemoteFileSize = isCheckRemoteFileSize;
+        }
+
+        public async Task DownloadUrlAsync(ICrawledUrl crawledUrl, string downloadPath, FileExistsAction fileExistsAction)
         {
             _logger.Debug($"[MEGA] Staring downloading {crawledUrl.Url}");
 
@@ -56,7 +66,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
 
             if (await IsUrlAFolder(uri))
             {
-                await DownloadFolderAsync(uri, Path.Combine(downloadPath, crawledUrl.DownloadPath), overwriteFiles);
+                await DownloadFolderAsync(uri, Path.Combine(downloadPath, crawledUrl.DownloadPath), fileExistsAction);
             }
             else
             {
@@ -64,7 +74,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
                 INode fileNodeInfo = await _client.GetNodeFromLinkAsync(uri);
                 string path = Path.Combine(downloadPath, crawledUrl.DownloadPath,
                     $"{id.Substring(0, 5)}_{fileNodeInfo.Name}");
-                await DownloadFileAsync(null, uri, fileNodeInfo, path, overwriteFiles);
+                await DownloadFileAsync(null, uri, fileNodeInfo, path, fileExistsAction);
             }
 
             _logger.Debug($"[MEGA] Finished downloading {crawledUrl.Url}");
@@ -84,7 +94,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
             }
         }
 
-        private async Task DownloadFolderAsync(Uri uri, string downloadPath, bool overwrite)
+        private async Task DownloadFolderAsync(Uri uri, string downloadPath, FileExistsAction fileExistsAction)
         {
             INode[] nodes = (await _client.GetNodesFromLinkAsync(uri)).ToArray();
             var folders = new List<KeyValuePair<string, MegaFolder>>();
@@ -126,7 +136,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
                     node.Name);
                 try
                 {
-                    await DownloadFileAsync(node, null, null, path, overwrite);
+                    await DownloadFileAsync(node, null, null, path, fileExistsAction);
                 }
                 catch (Exception ex)
                 {
@@ -135,7 +145,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
             }
         }
 
-        private async Task DownloadFileAsync(INode fileNode, Uri fileUri, INode fileNodeInfo, string path, bool overwrite, int retry = 0) //MegaApiClient is a mess, that's why we pass so many parameters
+        private async Task DownloadFileAsync(INode fileNode, Uri fileUri, INode fileNodeInfo, string path, FileExistsAction fileExistsAction, int retry = 0) //MegaApiClient is a mess, that's why we pass so many parameters
         {
             if(fileNode == null && fileNodeInfo == null)
                 throw new ArgumentException("fileNode or fileNodeInfo should be filled");
@@ -148,17 +158,20 @@ namespace UniversalDownloaderPlatform.MegaDownloader
             if (nodeInfo.Type != NodeType.File)
                 throw new Exception("Node is not a file");
 
+            string temporaryFilePath = $"{path}.dwnldtmp";
+
+            try
+            {
+                if (File.Exists(temporaryFilePath))
+                    File.Delete(temporaryFilePath);
+            }
+            catch (Exception fileDeleteException)
+            {
+                throw new Common.Exceptions.DownloadException($"Unable to delete existing temporary file {temporaryFilePath}", fileDeleteException);
+            }
+
             if (retry > 0)
             {
-                try
-                {
-                    if (File.Exists(path))
-                        File.Delete(path);
-                }
-                catch (Exception fileDeleteException)
-                {
-                    throw new Common.Exceptions.DownloadException($"Unable to delete corrupted file {path}", fileDeleteException);
-                }
 
                 if (retry >= _maxRetries)
                 {
@@ -171,59 +184,11 @@ namespace UniversalDownloaderPlatform.MegaDownloader
             _logger.Debug($"[MEGA] Downloading {nodeInfo.Name} to {path}");
 
             long remoteFileSize = nodeInfo.Size;
-            bool isFilesIdentical = false;
 
             if (File.Exists(path))
             {
-                if (remoteFileSize > 0)
-                {
-                    _logger.Debug($"[MEGA] File {path} exists, size will be checked");
-                    try
-                    {
-                        FileInfo fileInfo = new FileInfo(path);
-                        long fileSize = fileInfo.Length;
-
-                        if (fileSize != remoteFileSize)
-                        {
-                            string backupFilename =
-                                    $"{Path.GetFileNameWithoutExtension(path)}_old_{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}{Path.GetExtension(path)}";
-                            _logger.Warn($"[MEGA] Local and remote file sizes does not match, file {nodeInfo.Id} will be redownloaded. Old file will be backed up as {backupFilename}. Remote file size: {remoteFileSize}, local file size: {fileSize}");
-                            File.Move(path, Path.Combine(fileInfo.DirectoryName, backupFilename));
-                        }
-                        else
-                        {
-                            _logger.Debug($"[MEGA] File size for {path} matches");
-                            isFilesIdentical = true;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.Error(ex, $"[MEGA] Error during file comparison: {ex}");
-                        isFilesIdentical = true; //we assume that local file is identical if we can't check remote file size
-                    }
-                }
-
-                if (isFilesIdentical)
-                {
-                    if (!overwrite)
-                    {
-                        _logger.Warn($"[MEGA] File {path} already exists and has the same file size as remote file (or remote file is not available). Skipping...");
-                        return;
-                    }
-                    else
-                    {
-                        _logger.Warn($"[MEGA] File {path} already exists, will be overwriten!");
-
-                        try
-                        {
-                            File.Delete(path);
-                        }
-                        catch (Exception ex)
-                        {
-                            throw new Common.Exceptions.DownloadException($"Unable to delete file {path}", ex);
-                        }
-                    }
-                }
+                if (!FileExistsActionHelper.DoFileExistsActionBeforeDownload(path, remoteFileSize, _isCheckRemoteFileSize, fileExistsAction, LoggingFunction))
+                    return;
             }
 
             try
@@ -241,11 +206,11 @@ namespace UniversalDownloaderPlatform.MegaDownloader
             {
                 IProgress<double> progressHandler = new Progress<double>(x => _logger.Trace("Mega download progress: {0}%", x));
                 if(fileNode != null)
-                    await _client.DownloadFileAsync(fileNode, path, progressHandler);
+                    await _client.DownloadFileAsync(fileNode, temporaryFilePath, progressHandler);
                 else
-                    await _client.DownloadFileAsync(fileUri, path, progressHandler);
+                    await _client.DownloadFileAsync(fileUri, temporaryFilePath, progressHandler);
 
-                FileInfo fileInfo = new FileInfo(path);
+                FileInfo fileInfo = new FileInfo(temporaryFilePath);
                 long fileSize = fileInfo.Length;
                 fileInfo = null;
 
@@ -253,20 +218,65 @@ namespace UniversalDownloaderPlatform.MegaDownloader
                 {
                     _logger.Warn($"Downloaded file size differs from the size returned by server. Local size: {fileSize}, remote size: {remoteFileSize}. File {path} will be redownloaded.");
 
-                    File.Delete(path);
+                    File.Delete(temporaryFilePath);
 
                     retry++;
 
-                    await DownloadFileAsync(fileNode, fileUri, fileNodeInfo, path, overwrite, retry);
+                    await DownloadFileAsync(fileNode, fileUri, fileNodeInfo, path, fileExistsAction, retry);
                     return;
                 }
                 _logger.Debug($"File size check passed for: {path}");
+
+                _logger.Debug($"Renaming temporary file for: {path}");
+
+                try
+                {
+                    FileExistsActionHelper.DoFileExistsActionAfterDownload(path, temporaryFilePath, fileExistsAction, LoggingFunction);
+                }
+                catch (Exception ex)
+                {
+                    throw new Common.Exceptions.DownloadException(ex.Message, ex);
+                }
             }
             catch (Exception ex)
             {
+                if (ex is Common.Exceptions.DownloadException)
+                    throw;
+
                 retry++;
-                _logger.Debug(ex, $"Encountered error while trying to download {nodeInfo.Id}, retrying in {retry * 2} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
-                await DownloadFileAsync(fileNode, fileUri, fileNodeInfo, path, overwrite, retry);
+                _logger.Error(ex, $"Encountered error while trying to download {nodeInfo.Id}, retrying in {retry * 2} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
+                await DownloadFileAsync(fileNode, fileUri, fileNodeInfo, path, fileExistsAction, retry);
+            }
+        }
+
+        /// <summary>
+        /// Logging function for FileExistsActionHelper calls
+        /// </summary>
+        /// <param name="level"></param>
+        /// <param name="message"></param>
+        /// <param name="exception"></param>
+        private void LoggingFunction(LogMessageLevel level, string message, Exception exception)
+        {
+            switch (level)
+            {
+                case LogMessageLevel.Trace:
+                    _logger.Trace(message, exception);
+                    break;
+                case LogMessageLevel.Debug:
+                    _logger.Debug(message, exception);
+                    break;
+                case LogMessageLevel.Fatal:
+                    _logger.Fatal(message, exception);
+                    break;
+                case LogMessageLevel.Error:
+                    _logger.Error(message, exception);
+                    break;
+                case LogMessageLevel.Warning:
+                    _logger.Warn(message, exception);
+                    break;
+                case LogMessageLevel.Information:
+                    _logger.Info(message, exception);
+                    break;
             }
         }
 

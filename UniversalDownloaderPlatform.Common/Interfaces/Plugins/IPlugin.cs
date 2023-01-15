@@ -17,9 +17,9 @@ namespace UniversalDownloaderPlatform.Common.Interfaces.Plugins
         /// Initialization function, called by IPluginManager's BeforeStart() function.
         /// </summary>
         /// <returns></returns>
-        /// <param name="overwriteFiles">Specifies if existing files should be overwritten</param>
+        /// <param name="settings">Settings for the current download task</param>
         /// <returns></returns>
-        Task BeforeStart(bool overwriteFiles);
+        Task BeforeStart(IUniversalDownloaderPlatformSettings settings);
         /// <summary>
         /// Returns true if supplied url is supported by this plugin
         /// </summary>
@@ -30,9 +30,8 @@ namespace UniversalDownloaderPlatform.Common.Interfaces.Plugins
         /// Download crawled url
         /// </summary>
         /// <param name="crawledUrl"></param>
-        /// <param name="downloadDirectory"></param>
         /// <returns></returns>
-        Task Download(ICrawledUrl crawledUrl, string downloadDirectory);
+        Task Download(ICrawledUrl crawledUrl);
 
         /// <summary>
         /// Extract supported urls from supplied html text

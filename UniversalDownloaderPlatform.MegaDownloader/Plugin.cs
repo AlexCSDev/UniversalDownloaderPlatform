@@ -8,6 +8,7 @@ using CG.Web.MegaApiClient;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Configuration;
 using NLog;
+using UniversalDownloaderPlatform.Common.Enums;
 using UniversalDownloaderPlatform.Common.Exceptions;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
 using UniversalDownloaderPlatform.Common.Interfaces.Plugins;
@@ -28,6 +29,9 @@ namespace UniversalDownloaderPlatform.MegaDownloader
         private readonly static Regex _oldFormatRegex;
         private readonly static MegaCredentials _megaCredentials;
         private static MegaDownloader _megaDownloader;
+
+        private FileExistsAction _fileExistsAction;
+        private string _downloadDirectory;
 
         static Plugin()
         {
@@ -60,12 +64,17 @@ namespace UniversalDownloaderPlatform.MegaDownloader
             }
         }
 
-        public async Task BeforeStart(bool overwriteFiles)
+        public Task BeforeStart(IUniversalDownloaderPlatformSettings settings)
         {
-            _overwriteFiles = overwriteFiles;
+            _fileExistsAction = settings.FileExistsAction;
+            _downloadDirectory = settings.DownloadDirectory;
+
+            _megaDownloader.BeforeStart(settings.MaxDownloadRetries, settings.IsCheckRemoteFileSize);
+
+            return Task.CompletedTask;
         }
 
-        public async Task Download(ICrawledUrl crawledUrl, string downloadDirectory)
+        public async Task Download(ICrawledUrl crawledUrl)
         {
             if (_megaDownloader == null)
             {
@@ -75,7 +84,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
 
             try
             {
-                await _megaDownloader.DownloadUrlAsync(crawledUrl, downloadDirectory);
+                await _megaDownloader.DownloadUrlAsync(crawledUrl, _downloadDirectory, _fileExistsAction);
             }
             catch (DownloadException ex)
             {
@@ -87,7 +96,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
             }
         }
 
-        public async Task<List<string>> ExtractSupportedUrls(string htmlContents)
+        public Task<List<string>> ExtractSupportedUrls(string htmlContents)
         {
             List<string> retList = new List<string>();
             HtmlDocument doc = new HtmlDocument();
@@ -147,21 +156,21 @@ namespace UniversalDownloaderPlatform.MegaDownloader
                 retList.Add(sanitizedUrl);
             }
 
-            return retList;
+            return Task.FromResult(retList);
         }
 
-        public async Task<bool> IsSupportedUrl(string url)
+        public Task<bool> IsSupportedUrl(string url)
         {
             if (!url.Contains("mega.nz/") && !url.Contains("mega.co.nz/"))
-                return false;
+                return Task.FromResult(false);
 
             MatchCollection matchesNewFormat = _newFormatRegex.Matches(url);
             MatchCollection matchesOldFormat = _oldFormatRegex.Matches(url);
 
             if (matchesOldFormat.Count > 0 || matchesNewFormat.Count > 0)
-                return true;
+                return Task.FromResult(true);
 
-            return false;
+            return Task.FromResult(false);
         }
     }
 }

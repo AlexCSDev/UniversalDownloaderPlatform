@@ -21,6 +21,7 @@ namespace UniversalDownloaderPlatform.Engine
 
         private readonly List<IPlugin> _plugins;
         private readonly IPlugin _defaultPlugin;
+
         public PluginManager(IPlugin defaultPlugin)
         {
             _defaultPlugin = defaultPlugin;
@@ -72,18 +73,16 @@ namespace UniversalDownloaderPlatform.Engine
         {
             foreach (IPlugin plugin in _plugins)
             {
-                await plugin.BeforeStart(settings.OverwriteFiles);
+                await plugin.BeforeStart(settings);
             }
 
-            await _defaultPlugin.BeforeStart(settings.OverwriteFiles);
+            await _defaultPlugin.BeforeStart(settings);
         }
 
-        public async Task DownloadCrawledUrl(ICrawledUrl crawledUrl, string downloadDirectory)
+        public async Task DownloadCrawledUrl(ICrawledUrl crawledUrl)
         {
             if(crawledUrl == null)
                 throw new ArgumentNullException(nameof(crawledUrl));
-            if(downloadDirectory == null)
-                throw new ArgumentNullException(nameof(downloadDirectory));
 
             IPlugin downloadPlugin = _defaultPlugin;
 
@@ -99,7 +98,7 @@ namespace UniversalDownloaderPlatform.Engine
                 }
             }
 
-            await downloadPlugin.Download(crawledUrl, downloadDirectory);
+            await downloadPlugin.Download(crawledUrl);
         }
 
         public async Task<List<string>> ExtractSupportedUrls(string htmlContents)

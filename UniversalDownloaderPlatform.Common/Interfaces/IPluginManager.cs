@@ -16,9 +16,8 @@ namespace UniversalDownloaderPlatform.Common.Interfaces
         /// Download file using one of the registered plugins (or default if none are found)
         /// </summary>
         /// <param name="crawledUrl"></param>
-        /// <param name="downloadDirectory"></param>
         /// <returns></returns>
-        Task DownloadCrawledUrl(ICrawledUrl crawledUrl, string downloadDirectory);
+        Task DownloadCrawledUrl(ICrawledUrl crawledUrl);
 
         /// <summary>
         /// Run entry contents through every plugin to extract supported urls.

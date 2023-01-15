@@ -111,22 +111,11 @@ namespace UniversalDownloaderPlatform.Engine
         }
 
         /// <summary>
-        /// Download specified creator into default download directory
+        /// Download specified creator
         /// </summary>
         /// <param name="url">Url of the creator's page</param>
         /// <param name="settings">Settings</param>
         public async Task Download(string url, IUniversalDownloaderPlatformSettings settings)
-        {
-            await Download(url, null, settings);
-        }
-
-        /// <summary>
-        /// Download specified creator
-        /// </summary>
-        /// <param name="url">Url of the creator's page</param>
-        /// <param name="downloadDirectory">Target download directory, if not set will be set to appdir\download\ICrawlTargetInfo.SaveDirectory</param>
-        /// <param name="settings">Settings</param>
-        public async Task Download(string url, string downloadDirectory, IUniversalDownloaderPlatformSettings settings)
         {
             if(string.IsNullOrEmpty(url))
                 throw new ArgumentException("Argument cannot be null or empty", nameof(url));
@@ -136,7 +125,6 @@ namespace UniversalDownloaderPlatform.Engine
 
             url = url.ToLower(CultureInfo.InvariantCulture);
 
-            settings.Consumed = true;
             _logger.Debug($"Universal Downloader Platform settings: {settings}");
 
             try
@@ -177,14 +165,13 @@ namespace UniversalDownloaderPlatform.Engine
 
                 try
                 {
-
-                    if (string.IsNullOrEmpty(downloadDirectory))
+                    if (string.IsNullOrWhiteSpace(settings.DownloadDirectory))
                     {
-                        downloadDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "download", crawlTargetInfo.SaveDirectory);
+                        settings.DownloadDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "download", crawlTargetInfo.SaveDirectory);
                     }
-                    if (!Directory.Exists(downloadDirectory))
+                    if (!Directory.Exists(settings.DownloadDirectory))
                     {
-                        Directory.CreateDirectory(downloadDirectory);
+                        Directory.CreateDirectory(settings.DownloadDirectory);
                     }
                 }
                 catch (Exception ex)
@@ -195,13 +182,13 @@ namespace UniversalDownloaderPlatform.Engine
 
                 _logger.Debug("Starting crawler");
                 OnStatusChanged(new DownloaderStatusChangedEventArgs(DownloaderStatus.Crawling));
-                List<ICrawledUrl> crawledUrls = await _pageCrawler.Crawl(crawlTargetInfo, downloadDirectory);
+                List<ICrawledUrl> crawledUrls = await _pageCrawler.Crawl(crawlTargetInfo);
 
                 //puppeteer was closed here before
 
                 _logger.Debug("Starting downloader");
                 OnStatusChanged(new DownloaderStatusChangedEventArgs(DownloaderStatus.Downloading));
-                await _downloadManager.Download(crawledUrls, downloadDirectory, _cancellationTokenSource.Token);
+                await _downloadManager.Download(crawledUrls, _cancellationTokenSource.Token);
 
                 if (_crawlResultsExporter != null)
                 {

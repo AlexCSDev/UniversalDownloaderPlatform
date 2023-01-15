@@ -6,10 +6,13 @@ using System.Threading;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Download;
 using Google.Apis.Drive.v3;
+using Google.Apis.Logging;
 using Google.Apis.Services;
 using Google.Apis.Util.Store;
 using HeyRed.Mime;
 using NLog;
+using UniversalDownloaderPlatform.Common.Enums;
+using UniversalDownloaderPlatform.Common.Exceptions;
 using UniversalDownloaderPlatform.Common.Helpers;
 using File = Google.Apis.Drive.v3.Data.File;
 
@@ -52,17 +55,17 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
             });
         }
 
-        public void Download(string id, string path, bool overwrite = false)
+        public void Download(string id, string path, FileExistsAction fileExistsAction)
         {
             if (Service == null)
                 return;
 
             File fileResource = Service.Files.Get(id).Execute();
 
-            DownloadFileResource(fileResource, path, true, overwrite);
+            DownloadFileResource(fileResource, path, fileExistsAction, true);
         }
 
-        private void DownloadFileResource(File fileResource, string path, bool rootPath = true, bool overwrite = false)
+        private void DownloadFileResource(File fileResource, string path, FileExistsAction fileExistsAction, bool rootPath = true)
         {
             string sanitizedFilename = PathSanitizer.SanitizePath(fileResource.Name).Trim();
 
@@ -75,6 +78,18 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
                 path = Path.Combine(path, sanitizedFilename);
             }
 
+            string temporaryFilePath = $"{path}.dwnldtmp";
+
+            try
+            {
+                if (System.IO.File.Exists(temporaryFilePath))
+                    System.IO.File.Delete(temporaryFilePath);
+            }
+            catch (Exception fileDeleteException)
+            {
+                throw new DownloadException($"Unable to delete existing temporary file {temporaryFilePath}", fileDeleteException);
+            }
+
             Logger.Info($"[Google Drive] Downloading {fileResource.Name}");
             Logger.Debug($"[Google Drive] {fileResource.Name} mime type is: {fileResource.MimeType}");
 
@@ -82,13 +97,11 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
             {
                 if (System.IO.File.Exists(path))
                 {
-                    if (!overwrite)
+                    if (fileExistsAction == FileExistsAction.KeepExisting)
                     {
                         Logger.Warn("[Google Drive] FILE EXISTS: " + path);
                         return;
                     }
-                    else
-                        System.IO.File.Delete(path);
                 }
 
                 if (!Directory.Exists(path))
@@ -116,7 +129,7 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
                     isGoogleDocument = true;
                 }
 
-                using (FileStream file = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None))
+                using (FileStream file = new FileStream(temporaryFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
                 {
                     if (isGoogleDocument)
                     {
@@ -128,6 +141,11 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
                         if(downloadProgress.Status == DownloadStatus.Failed)
                             throw new Exception($"Unable to download {fileResource.Name}: {downloadProgress.Exception}");
                     }
+
+                    if (System.IO.File.Exists(path))
+                    {
+                        FileExistsActionHelper.DoFileExistsActionAfterDownload(path, temporaryFilePath, fileExistsAction, LoggingFunction);
+                    }
                 }
             }
             else
@@ -137,7 +155,7 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
                 var subFolderItems = RessInFolder(fileResource.Id);
 
                 foreach (var item in subFolderItems)
-                    DownloadFileResource(item, path, false);
+                    DownloadFileResource(item, path, fileExistsAction, false);
             }
         }
 
@@ -164,6 +182,37 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
 
             Logger.Info($"[Google Drive] Finished scanning folder {folderId}");
             return retList;
+        }
+
+        /// <summary>
+        /// Logging function for FileExistsActionHelper calls
+        /// </summary>
+        /// <param name="level"></param>
+        /// <param name="message"></param>
+        /// <param name="exception"></param>
+        private void LoggingFunction(LogMessageLevel level, string message, Exception exception)
+        {
+            switch (level)
+            {
+                case LogMessageLevel.Trace:
+                    Logger.Trace(message, exception);
+                    break;
+                case LogMessageLevel.Debug:
+                    Logger.Debug(message, exception);
+                    break;
+                case LogMessageLevel.Fatal:
+                    Logger.Fatal(message, exception);
+                    break;
+                case LogMessageLevel.Error:
+                    Logger.Error(message, exception);
+                    break;
+                case LogMessageLevel.Warning:
+                    Logger.Warn(message, exception);
+                    break;
+                case LogMessageLevel.Information:
+                    Logger.Info(message, exception);
+                    break;
+            }
         }
     }
 }

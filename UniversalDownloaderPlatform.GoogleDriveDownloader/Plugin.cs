@@ -4,6 +4,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using NLog;
+using UniversalDownloaderPlatform.Common.Enums;
 using UniversalDownloaderPlatform.Common.Exceptions;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
 using UniversalDownloaderPlatform.Common.Interfaces.Plugins;
@@ -20,7 +21,8 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
         private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
         private static readonly GoogleDriveEngine _engine;
 
-        private bool _overwriteFiles;
+        private FileExistsAction _fileExistsAction;
+        private string _downloadDirectory;
 
         static Plugin()
         {
@@ -33,21 +35,24 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
             _engine = new GoogleDriveEngine();
         }
 
-        public async Task BeforeStart(bool overwriteFiles)
+        public Task BeforeStart(IUniversalDownloaderPlatformSettings settings)
         {
-            _overwriteFiles = overwriteFiles;
+            _fileExistsAction = settings.FileExistsAction;
+            _downloadDirectory = settings.DownloadDirectory;
+
+            return Task.CompletedTask;
         }
 
-        public async Task<bool> IsSupportedUrl(string url)
+        public Task<bool> IsSupportedUrl(string url)
         {
             Match match = _googleDriveRegex.Match(url);
 
-            return match.Success;
+            return Task.FromResult(match.Success);
         }
 
-        public async Task Download(ICrawledUrl crawledUrl, string downloadDirectory)
+        public Task Download(ICrawledUrl crawledUrl)
         {
-            _logger.Debug($"Received new url: {crawledUrl.Url}, download dir: {downloadDirectory}");
+            _logger.Debug($"Received new url: {crawledUrl.Url}");
 
             Match match = _googleDriveRegex.Match(crawledUrl.Url);
             if (!match.Success)
@@ -58,7 +63,7 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
 
             string id = match.Groups[1].Value;
 
-            string downloadPath = Path.Combine(downloadDirectory, crawledUrl.DownloadPath);
+            string downloadPath = Path.Combine(_downloadDirectory, crawledUrl.DownloadPath);
             try
             {
                 //warning: returns '' in drive's root
@@ -77,19 +82,21 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
 
             try
             {
-                _engine.Download(id, downloadPath, _overwriteFiles);
+                _engine.Download(id, downloadPath, _fileExistsAction);
             }
             catch (Exception ex)
             {
                 _logger.Error("GOOGLE DRIVE ERROR: " + ex);
                 throw new DownloadException($"Unable to download {crawledUrl.Url}", ex);
             }
+
+            return Task.CompletedTask;
         }
 
-        public async Task<List<string>> ExtractSupportedUrls(string htmlContents)
+        public Task<List<string>> ExtractSupportedUrls(string htmlContents)
         {
             //Let default plugin do this
-            return null;
+            return Task.FromResult((List<string>)null);
         }
     }
 }

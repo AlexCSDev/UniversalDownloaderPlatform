@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net.Http;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using NLog;
+using UniversalDownloaderPlatform.Common.Enums;
 using UniversalDownloaderPlatform.Common.Events;
 using UniversalDownloaderPlatform.Common.Exceptions;
 using UniversalDownloaderPlatform.Common.Interfaces;
@@ -29,12 +32,10 @@ namespace UniversalDownloaderPlatform.Engine
             _urlChecker = urlChecker ?? throw new ArgumentNullException(nameof(urlChecker));
         }
 
-        public async Task Download(List<ICrawledUrl> crawledUrls, string downloadDirectory, CancellationToken cancellationToken)
+        public async Task Download(List<ICrawledUrl> crawledUrls, CancellationToken cancellationToken)
         {
             if(crawledUrls == null)
                 throw new ArgumentNullException(nameof(crawledUrls));
-            if(string.IsNullOrEmpty(downloadDirectory))
-                throw new ArgumentException("Argument cannot be null or empty", nameof(downloadDirectory));
 
             using (SemaphoreSlim concurrencySemaphore = new SemaphoreSlim(4)) //todo: allow setting the count here (issue #4)
             {
@@ -69,14 +70,14 @@ namespace UniversalDownloaderPlatform.Engine
                             try
                             {
                                 _logger.Debug($"Calling url processor for: {entry.Url}");
-                                bool isDownloadAllowed = await _crawledUrlProcessor.ProcessCrawledUrl(entry, downloadDirectory);
+                                bool isDownloadAllowed = await _crawledUrlProcessor.ProcessCrawledUrl(entry);
 
                                 if (isDownloadAllowed)
                                 {
                                     if (string.IsNullOrWhiteSpace(entry.DownloadPath))
                                         throw new DownloadException($"Download path is not filled for {entry.Url}");
 
-                                    await _pluginManager.DownloadCrawledUrl(entry, downloadDirectory);
+                                    await _pluginManager.DownloadCrawledUrl(entry);
                                 }
                                 else
                                 {

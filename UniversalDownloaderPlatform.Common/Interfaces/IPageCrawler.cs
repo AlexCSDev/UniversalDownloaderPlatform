@@ -17,6 +17,6 @@ namespace UniversalDownloaderPlatform.Common.Interfaces
         /// </summary>
         /// <returns></returns>
         Task BeforeStart(IUniversalDownloaderPlatformSettings settings);
-        Task<List<ICrawledUrl>> Crawl(ICrawlTargetInfo crawlTargetInfo, string downloadDirectory);
+        Task<List<ICrawledUrl>> Crawl(ICrawlTargetInfo crawlTargetInfo);
     }
 }
