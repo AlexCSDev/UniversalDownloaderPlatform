@@ -16,6 +16,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations.Models
         private const int DefaultRetryMultiplier = 5;
         private const FileExistsAction DefaultRemoteFileSizeNotAvailableAction =
             FileExistsAction.BackupIfDifferent;
+        private const bool DefaultIsCheckRemoteFileSize = true;
 
         private string _userAgent;
         private int _maxDownloadRetries;
@@ -72,6 +73,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations.Models
             _maxDownloadRetries = DefaultMaxDownloadRetries;
             _retryMultiplier = DefaultRetryMultiplier;
             FileExistsAction = DefaultRemoteFileSizeNotAvailableAction;
+            IsCheckRemoteFileSize = DefaultIsCheckRemoteFileSize;
             DownloadDirectory = null;
         }
     }

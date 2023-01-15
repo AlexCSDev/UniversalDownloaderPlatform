@@ -216,7 +216,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
 
                 if (remoteFileSize > 0 && fileSize != remoteFileSize)
                 {
-                    _logger.Warn($"Downloaded file size differs from the size returned by server. Local size: {fileSize}, remote size: {remoteFileSize}. File {path} will be redownloaded.");
+                    _logger.Warn($"[MEGA] Downloaded file size differs from the size returned by server. Local size: {fileSize}, remote size: {remoteFileSize}. File {path} will be redownloaded.");
 
                     File.Delete(temporaryFilePath);
 
@@ -225,9 +225,9 @@ namespace UniversalDownloaderPlatform.MegaDownloader
                     await DownloadFileAsync(fileNode, fileUri, fileNodeInfo, path, fileExistsAction, retry);
                     return;
                 }
-                _logger.Debug($"File size check passed for: {path}");
+                _logger.Debug($"[MEGA] File size check passed for: {path}");
 
-                _logger.Debug($"Renaming temporary file for: {path}");
+                _logger.Debug($"[MEGA] Renaming temporary file for: {path}");
 
                 try
                 {
@@ -257,6 +257,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
         /// <param name="exception"></param>
         private void LoggingFunction(LogMessageLevel level, string message, Exception exception)
         {
+            message = $"[MEGA] {message}";
             switch (level)
             {
                 case LogMessageLevel.Trace:

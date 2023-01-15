@@ -30,8 +30,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
         private readonly static MegaCredentials _megaCredentials;
         private static MegaDownloader _megaDownloader;
 
-        private FileExistsAction _fileExistsAction;
-        private string _downloadDirectory;
+        private IUniversalDownloaderPlatformSettings _settings;
 
         static Plugin()
         {
@@ -66,9 +65,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
 
         public Task BeforeStart(IUniversalDownloaderPlatformSettings settings)
         {
-            _fileExistsAction = settings.FileExistsAction;
-            _downloadDirectory = settings.DownloadDirectory;
-
+            _settings = settings;
             _megaDownloader.BeforeStart(settings.MaxDownloadRetries, settings.IsCheckRemoteFileSize);
 
             return Task.CompletedTask;
@@ -84,7 +81,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
 
             try
             {
-                await _megaDownloader.DownloadUrlAsync(crawledUrl, _downloadDirectory, _fileExistsAction);
+                await _megaDownloader.DownloadUrlAsync(crawledUrl, _settings.DownloadDirectory, _settings.FileExistsAction);
             }
             catch (DownloadException ex)
             {

@@ -141,11 +141,15 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
                         if(downloadProgress.Status == DownloadStatus.Failed)
                             throw new Exception($"Unable to download {fileResource.Name}: {downloadProgress.Exception}");
                     }
+                }
 
-                    if (System.IO.File.Exists(path))
-                    {
-                        FileExistsActionHelper.DoFileExistsActionAfterDownload(path, temporaryFilePath, fileExistsAction, LoggingFunction);
-                    }
+                try
+                {
+                    FileExistsActionHelper.DoFileExistsActionAfterDownload(path, temporaryFilePath, fileExistsAction, LoggingFunction);
+                }
+                catch (Exception ex)
+                {
+                    throw new Common.Exceptions.DownloadException(ex.Message, ex);
                 }
             }
             else
@@ -192,6 +196,7 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
         /// <param name="exception"></param>
         private void LoggingFunction(LogMessageLevel level, string message, Exception exception)
         {
+            message = $"[Google Drive] {message}";
             switch (level)
             {
                 case LogMessageLevel.Trace:

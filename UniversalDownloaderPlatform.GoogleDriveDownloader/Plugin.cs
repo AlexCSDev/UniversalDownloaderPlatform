@@ -21,8 +21,7 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
         private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
         private static readonly GoogleDriveEngine _engine;
 
-        private FileExistsAction _fileExistsAction;
-        private string _downloadDirectory;
+        private IUniversalDownloaderPlatformSettings _settings;
 
         static Plugin()
         {
@@ -37,8 +36,7 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
 
         public Task BeforeStart(IUniversalDownloaderPlatformSettings settings)
         {
-            _fileExistsAction = settings.FileExistsAction;
-            _downloadDirectory = settings.DownloadDirectory;
+            _settings = settings;
 
             return Task.CompletedTask;
         }
@@ -63,7 +61,7 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
 
             string id = match.Groups[1].Value;
 
-            string downloadPath = Path.Combine(_downloadDirectory, crawledUrl.DownloadPath);
+            string downloadPath = Path.Combine(_settings.DownloadDirectory, crawledUrl.DownloadPath);
             try
             {
                 //warning: returns '' in drive's root
@@ -82,7 +80,7 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
 
             try
             {
-                _engine.Download(id, downloadPath, _fileExistsAction);
+                _engine.Download(id, downloadPath, _settings.FileExistsAction);
             }
             catch (Exception ex)
             {

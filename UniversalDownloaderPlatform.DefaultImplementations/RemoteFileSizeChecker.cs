@@ -128,6 +128,13 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                     $"Encountered connection error while trying to access {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
                 return await GetRemoteFileSizeInternal(url, refererUrl, retry);
             }
+            catch (HttpRequestException ex)
+            {
+                retry++;
+                _logger.Debug(ex,
+                    $"Encountered http request exception while trying to access {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
+                return await GetRemoteFileSizeInternal(url, refererUrl, retry);
+            }
             catch (Exception ex)
             {
                 throw new WebException($"Unable to download from {url}: {ex.Message}", ex);
