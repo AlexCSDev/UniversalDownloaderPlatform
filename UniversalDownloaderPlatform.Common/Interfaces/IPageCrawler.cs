@@ -13,7 +13,7 @@ namespace UniversalDownloaderPlatform.Common.Interfaces
         event EventHandler<NewCrawledUrlEventArgs> NewCrawledUrl;
         event EventHandler<CrawlerMessageEventArgs> CrawlerMessage;
         /// <summary>
-        /// Initialization function, called on every PatreonDownloader.Download call
+        /// Initialization function, called on every UniversalDownloader.Download call
         /// </summary>
         /// <returns></returns>
         Task BeforeStart(IUniversalDownloaderPlatformSettings settings);

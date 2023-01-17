@@ -19,16 +19,16 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
     //TODO: Make disposable?
     public class WebDownloader : IWebDownloader
     {
-        private HttpClient _httpClient;
-        private HttpClientHandler _httpClientHandler;
-        private readonly IRemoteFileSizeChecker _remoteFileSizeChecker;
+        protected HttpClient _httpClient;
+        protected HttpClientHandler _httpClientHandler;
+        protected readonly IRemoteFileSizeChecker _remoteFileSizeChecker;
         private readonly Logger _logger = LogManager.GetCurrentClassLogger();
-        private int _maxRetries;
-        private int _retryMultiplier;
-        private FileExistsAction _fileExistsAction;
-        private bool _isCheckRemoteFileSize;
+        protected int _maxRetries;
+        protected int _retryMultiplier;
+        protected FileExistsAction _fileExistsAction;
+        protected bool _isCheckRemoteFileSize;
 
-        private readonly Version _httpVersion = HttpVersion.Version20;
+        protected readonly Version _httpVersion = HttpVersion.Version20;
 
         public WebDownloader(IRemoteFileSizeChecker remoteFileSizeChecker)
         {

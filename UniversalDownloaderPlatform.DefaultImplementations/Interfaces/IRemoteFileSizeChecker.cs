@@ -6,7 +6,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations.Interfaces
     public interface IRemoteFileSizeChecker
     {
         /// <summary>
-        /// Initialization function, called on every PatreonDownloader.Download call
+        /// Initialization function, called on every UniversalDownloader.Download call
         /// </summary>
         Task BeforeStart(IUniversalDownloaderPlatformSettings settings);
         /// <summary>

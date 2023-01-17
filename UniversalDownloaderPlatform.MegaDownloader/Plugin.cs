@@ -20,7 +20,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
     {
         public string Name => "Mega.nz Downloader";
         public string Author => "Aleksey Tsutsey";
-        public string ContactInformation => "https://github.com/Megalan/PatreonDownloader";
+        public string ContactInformation => "https://github.com/AlexCSDev/UniversalDownloaderPlatform";
 
         private readonly ILogger _logger = LogManager.GetCurrentClassLogger();
         private bool _overwriteFiles;

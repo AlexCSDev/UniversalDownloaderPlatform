@@ -109,6 +109,7 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
                     Directory.CreateDirectory(new FileInfo(path).DirectoryName);
                 }
 
+                //todo: allow choosing which format to use: pdf or office
                 bool isGoogleDocument = false;
                 string mimeType = null;
                 // https://developers.google.com/drive/api/v3/mime-types
@@ -117,14 +118,29 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
                     fileResource.MimeType == "application/vnd.google-apps.spreadsheet" ||
                     fileResource.MimeType == "application/vnd.google-apps.presentation")
                 {
-                    string extension = Path.GetExtension(path);
+                    /*string extension = Path.GetExtension(path);
                     if (string.IsNullOrWhiteSpace(extension))
                     {
                         path += ".pdf";
                         mimeType = "application/pdf";
                     }
                     else
-                        mimeType = MimeTypesMap.GetMimeType(extension);
+                        mimeType = MimeTypesMap.GetMimeType(extension);*/
+                    switch(fileResource.MimeType)
+                    {
+                        case "application/vnd.google-apps.document":
+                            path += ".docx";
+                            mimeType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+                            break;
+                        case "application/vnd.google-apps.spreadsheet":
+                            path += ".xlsx";
+                            mimeType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                            break;
+                        case "application/vnd.google-apps.presentation":
+                            path += ".pptx";
+                            mimeType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+                            break;
+                    }
 
                     isGoogleDocument = true;
                 }

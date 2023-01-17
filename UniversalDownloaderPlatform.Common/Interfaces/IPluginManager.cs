@@ -7,7 +7,7 @@ namespace UniversalDownloaderPlatform.Common.Interfaces
     public interface IPluginManager
     {
         /// <summary>
-        /// Initialization function, called on every PatreonDownloader.Download call
+        /// Initialization function, called on every UniversalDownloader.Download call
         /// </summary>
         /// <returns></returns>
         Task BeforeStart(IUniversalDownloaderPlatformSettings settings);

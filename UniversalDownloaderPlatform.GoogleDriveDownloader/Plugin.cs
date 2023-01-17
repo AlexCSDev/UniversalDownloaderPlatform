@@ -15,9 +15,10 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
     {
         public string Name => "Google Drive Downloader";
         public string Author => "Aleksey Tsutsey";
-        public string ContactInformation => "https://github.com/Megalan/PatreonDownloader";
+        public string ContactInformation => "https://github.com/AlexCSDev/UniversalDownloaderPlatform";
 
         private static readonly Regex _googleDriveRegex;
+        private static readonly Regex _googleDocsRegex;
         private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
         private static readonly GoogleDriveEngine _engine;
 
@@ -31,6 +32,7 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
             }
 
             _googleDriveRegex = new Regex("https:\\/\\/drive\\.google\\.com\\/(?:file\\/d\\/|open\\?id\\=|drive\\/folders\\/|folderview\\?id=|drive\\/u\\/[0-9]+\\/folders\\/)([A-Za-z0-9_-]+)");
+            _googleDocsRegex = new Regex("https:\\/\\/docs\\.google\\.com\\/(?>document|spreadsheets)\\/d\\/([a-zA-Z0-9-_]+)");
             _engine = new GoogleDriveEngine();
         }
 
@@ -43,9 +45,10 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
 
         public Task<bool> IsSupportedUrl(string url)
         {
-            Match match = _googleDriveRegex.Match(url);
+            Match driveMatch = _googleDriveRegex.Match(url);
+            Match docsMatch = _googleDocsRegex.Match(url);
 
-            return Task.FromResult(match.Success);
+            return Task.FromResult(driveMatch.Success || docsMatch.Success);
         }
 
         public Task Download(ICrawledUrl crawledUrl)
@@ -55,8 +58,12 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
             Match match = _googleDriveRegex.Match(crawledUrl.Url);
             if (!match.Success)
             {
-                _logger.Error($"Unable to parse google drive url: {crawledUrl.Url}");
-                throw new DownloadException($"Unable to parse google drive url: {crawledUrl.Url}");
+                match = _googleDocsRegex.Match(crawledUrl.Url);
+                if(!match.Success)
+                {
+                    _logger.Error($"Unable to parse google drive/docs url: {crawledUrl.Url}");
+                    throw new DownloadException($"Unable to parse google drive/docs url: {crawledUrl.Url}");
+                }
             }
 
             string id = match.Groups[1].Value;
