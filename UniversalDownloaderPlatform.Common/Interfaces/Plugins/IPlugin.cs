@@ -14,6 +14,14 @@ namespace UniversalDownloaderPlatform.Common.Interfaces.Plugins
         string ContactInformation { get; }
 
         /// <summary>
+        /// Called when plugin is loaded
+        /// </summary>
+        /// <returns></returns>
+        /// <param name="dependencyResolver">Dependency resolver</param>
+        /// <returns></returns>
+        void OnLoad(IDependencyResolver dependencyResolver);
+
+        /// <summary>
         /// Initialization function, called by IPluginManager's BeforeStart() function.
         /// </summary>
         /// <returns></returns>

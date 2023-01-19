@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29102.190
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33122.133
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UniversalDownloaderPlatform.Engine", "UniversalDownloaderPlatform.Engine\UniversalDownloaderPlatform.Engine.csproj", "{88D67B58-02E2-4231-BB89-92BB74622560}"
 EndProject
@@ -12,6 +12,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UniversalDownloaderPlatform.GoogleDriveDownloader", "UniversalDownloaderPlatform.GoogleDriveDownloader\UniversalDownloaderPlatform.GoogleDriveDownloader.csproj", "{045E272F-2FA9-4AB1-B752-633DFBE56D8B}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UniversalDownloaderPlatform.MegaDownloader", "UniversalDownloaderPlatform.MegaDownloader\UniversalDownloaderPlatform.MegaDownloader.csproj", "{36537110-28C0-4CB1-B581-9D4AE475D5D7}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UniversalDownloaderPlatform.PuppeteerEngine", "UniversalDownloaderPlatform.PuppeteerEngine\UniversalDownloaderPlatform.PuppeteerEngine.csproj", "{92153E73-466A-4620-B7B3-2082E061B1DB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,10 @@ Global
 		{36537110-28C0-4CB1-B581-9D4AE475D5D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{36537110-28C0-4CB1-B581-9D4AE475D5D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{36537110-28C0-4CB1-B581-9D4AE475D5D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{92153E73-466A-4620-B7B3-2082E061B1DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{92153E73-466A-4620-B7B3-2082E061B1DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{92153E73-466A-4620-B7B3-2082E061B1DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{92153E73-466A-4620-B7B3-2082E061B1DB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -18,6 +18,8 @@ using UniversalDownloaderPlatform.Engine.Exceptions;
 using UniversalDownloaderPlatform.Common.Interfaces;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
 using UniversalDownloaderPlatform.Engine.Interfaces;
+using UniversalDownloaderPlatform.DefaultImplementations;
+using UniversalDownloaderPlatform.Engine.DummyImplementations;
 
 namespace UniversalDownloaderPlatform.Engine
 {
@@ -30,6 +32,7 @@ namespace UniversalDownloaderPlatform.Engine
         private readonly ICrawlResultsExporter _crawlResultsExporter;
         private readonly IUrlChecker _urlChecker;
         private readonly IWebDownloader _webDownloader;
+        private readonly ICookieRetriever _cookieRetriever;
         private readonly ICookieValidator _cookieValidator;
         private readonly ICrawledUrlProcessor _crawledUrlProcessor;
         private readonly IKernel _kernel;
@@ -91,7 +94,10 @@ namespace UniversalDownloaderPlatform.Engine
             _logger.Debug("Initializing crawl results exporter");
             _crawlResultsExporter = _kernel.TryGet<ICrawlResultsExporter>();
             if (_crawlResultsExporter == null)
-                _logger.Debug("Crawl results exporter not provided");
+            {
+                _logger.Debug("Crawl results exporter not provided, creating dummy");
+                _crawlResultsExporter = new DummyCrawlResultsExporter();
+            }
 
             _logger.Debug("Initializing url checker");
             _urlChecker = _kernel.Get<IUrlChecker>();
@@ -99,10 +105,21 @@ namespace UniversalDownloaderPlatform.Engine
             _logger.Debug("Initializing web downloader");
             _webDownloader = _kernel.Get<IWebDownloader>();
 
+            _logger.Debug("Initializing cookie retriever");
+            _cookieRetriever = _kernel.TryGet<ICookieRetriever>();
+            if (_cookieRetriever == null)
+            {
+                _logger.Debug("Cookie retriever not provided, creating dummy");
+                _cookieRetriever = new DummyCookieRetriever();
+            }
+
             _logger.Debug("Initializing cookie validator");
             _cookieValidator = _kernel.TryGet<ICookieValidator>();
             if (_cookieValidator == null)
-                _logger.Debug("Cookie validator not provided");
+            {
+                _logger.Debug("Cookie validator not provided, creating dummy");
+                _cookieValidator = new DummyCookieValidator();
+            }
 
             _logger.Debug("Initializing crawled url processor");
             _crawledUrlProcessor = _kernel.Get<ICrawledUrlProcessor>();
@@ -126,6 +143,23 @@ namespace UniversalDownloaderPlatform.Engine
             url = url.ToLower(CultureInfo.InvariantCulture);
 
             _logger.Debug($"Universal Downloader Platform settings: {settings}");
+
+            _logger.Info("Retrieving cookies...");
+            await _cookieRetriever.BeforeStart(settings);
+
+            settings.CookieContainer = await _cookieRetriever.RetrieveCookies();
+            if (settings.CookieContainer == null)
+            {
+                throw new Exception("Unable to retrieve cookies");
+            }
+
+            settings.UserAgent = await _cookieRetriever.GetUserAgent();
+            if (string.IsNullOrWhiteSpace(settings.UserAgent))
+            {
+                throw new Exception("Unable to retrieve user agent");
+            }
+
+            ((IDisposable)_cookieRetriever).Dispose();
 
             try
             {
@@ -157,9 +191,8 @@ namespace UniversalDownloaderPlatform.Engine
                 await _pluginManager.BeforeStart(settings);
                 await _crawledUrlProcessor.BeforeStart(settings);
                 await _pageCrawler.BeforeStart(settings);
-
-                if (_cookieValidator != null)
-                    await _cookieValidator.ValidateCookies(settings.CookieContainer);
+                
+                await _cookieValidator.ValidateCookies(settings.CookieContainer);
 
                 ICrawlTargetInfo crawlTargetInfo = await _crawlTargetInfoRetriever.RetrieveCrawlTargetInfo(url);
 
@@ -190,12 +223,9 @@ namespace UniversalDownloaderPlatform.Engine
                 OnStatusChanged(new DownloaderStatusChangedEventArgs(DownloaderStatus.Downloading));
                 await _downloadManager.Download(crawledUrls, _cancellationTokenSource.Token);
 
-                if (_crawlResultsExporter != null)
-                {
-                    _logger.Debug("Exporting crawl results");
-                    OnStatusChanged(new DownloaderStatusChangedEventArgs(DownloaderStatus.ExportingCrawlResults));
-                    await _crawlResultsExporter.ExportCrawlResults(crawlTargetInfo, crawledUrls);
-                }
+                _logger.Debug("Exporting crawl results");
+                OnStatusChanged(new DownloaderStatusChangedEventArgs(DownloaderStatus.ExportingCrawlResults));
+                await _crawlResultsExporter.ExportCrawlResults(crawlTargetInfo, crawledUrls);
 
                 _logger.Debug("Finished downloading");
                 OnStatusChanged(new DownloaderStatusChangedEventArgs(DownloaderStatus.Done));

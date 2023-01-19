@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Ninject;
 using NLog;
 using UniversalDownloaderPlatform.Common.Enums;
 using UniversalDownloaderPlatform.Common.Interfaces;
@@ -22,7 +23,7 @@ namespace UniversalDownloaderPlatform.Engine
         private readonly List<IPlugin> _plugins;
         private readonly IPlugin _defaultPlugin;
 
-        public PluginManager(IPlugin defaultPlugin)
+        public PluginManager(IPlugin defaultPlugin, IDependencyResolver dependencyResolver)
         {
             _defaultPlugin = defaultPlugin;
 
@@ -56,6 +57,8 @@ namespace UniversalDownloaderPlatform.Engine
                         _logger.Error($"Invalid plugin {filename}: IPlugin interface could not be created");
                         continue;
                     }
+
+                    plugin.OnLoad(dependencyResolver);
 
                     _plugins.Add(plugin);
                     

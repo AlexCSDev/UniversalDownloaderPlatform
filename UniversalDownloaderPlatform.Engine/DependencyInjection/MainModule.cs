@@ -17,6 +17,7 @@ namespace UniversalDownloaderPlatform.Engine.DependencyInjection
         {
             Bind<IPluginManager>().To<PluginManager>().InSingletonScope();
             Bind<IUrlChecker>().To<UrlChecker>().InSingletonScope();
+            Bind<IDependencyResolver>().To<DependencyResolver>().InSingletonScope();
             Bind<IDownloadManager>().To<DownloadManager>();
 
             //Kernel.Load("PatreonDownloader.PuppeteerEngine.dll");

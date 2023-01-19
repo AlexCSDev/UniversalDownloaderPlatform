@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using NLog;
 using UniversalDownloaderPlatform.Common.Enums;
 using UniversalDownloaderPlatform.Common.Exceptions;
+using UniversalDownloaderPlatform.Common.Interfaces;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
 using UniversalDownloaderPlatform.Common.Interfaces.Plugins;
 using DownloadException = UniversalDownloaderPlatform.Common.Exceptions.DownloadException;
@@ -61,6 +62,11 @@ namespace UniversalDownloaderPlatform.MegaDownloader
             {
                 LogManager.GetCurrentClassLogger().Fatal("!!!![MEGA]: Unable to initialize mega downloader, check email and password! No mega files will be downloaded in this session. !!!!");
             }
+        }
+
+        public void OnLoad(IDependencyResolver dependencyResolver)
+        {
+            //do nothing
         }
 
         public Task BeforeStart(IUniversalDownloaderPlatformSettings settings)

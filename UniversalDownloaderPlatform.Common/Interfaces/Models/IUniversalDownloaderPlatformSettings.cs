@@ -15,12 +15,12 @@ namespace UniversalDownloaderPlatform.Common.Interfaces.Models
         /// <summary>
         /// Cookie container with all required cookies, can be null
         /// </summary>
-        CookieContainer CookieContainer { get; init; }
+        CookieContainer CookieContainer { get; set; }
 
         /// <summary>
-        /// User agent string
+        /// User agent string, if set to null ICookieRetriever will be called to set it
         /// </summary>
-        string UserAgent { get; init; }
+        string UserAgent { get; set; }
 
         /// <summary>
         /// Urls containing anything from this list will be ignored by all components
