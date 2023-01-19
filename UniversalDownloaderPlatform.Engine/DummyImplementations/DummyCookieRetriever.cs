@@ -25,5 +25,10 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
         {
             return Task.FromResult(new CookieContainer());
         }
+
+        public void Dispose()
+        {
+            //do nothing
+        }
     }
 }

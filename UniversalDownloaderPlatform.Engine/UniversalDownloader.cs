@@ -92,12 +92,7 @@ namespace UniversalDownloaderPlatform.Engine
             _downloadManager.FileDownloaded += DownloadManagerOnFileDownloaded;
 
             _logger.Debug("Initializing crawl results exporter");
-            _crawlResultsExporter = _kernel.TryGet<ICrawlResultsExporter>();
-            if (_crawlResultsExporter == null)
-            {
-                _logger.Debug("Crawl results exporter not provided, creating dummy");
-                _crawlResultsExporter = new DummyCrawlResultsExporter();
-            }
+            _crawlResultsExporter = _kernel.Get<ICrawlResultsExporter>();
 
             _logger.Debug("Initializing url checker");
             _urlChecker = _kernel.Get<IUrlChecker>();
@@ -106,20 +101,10 @@ namespace UniversalDownloaderPlatform.Engine
             _webDownloader = _kernel.Get<IWebDownloader>();
 
             _logger.Debug("Initializing cookie retriever");
-            _cookieRetriever = _kernel.TryGet<ICookieRetriever>();
-            if (_cookieRetriever == null)
-            {
-                _logger.Debug("Cookie retriever not provided, creating dummy");
-                _cookieRetriever = new DummyCookieRetriever();
-            }
+            _cookieRetriever = _kernel.Get<ICookieRetriever>();
 
             _logger.Debug("Initializing cookie validator");
-            _cookieValidator = _kernel.TryGet<ICookieValidator>();
-            if (_cookieValidator == null)
-            {
-                _logger.Debug("Cookie validator not provided, creating dummy");
-                _cookieValidator = new DummyCookieValidator();
-            }
+            _cookieValidator = _kernel.Get<ICookieValidator>();
 
             _logger.Debug("Initializing crawled url processor");
             _crawledUrlProcessor = _kernel.Get<ICrawledUrlProcessor>();
@@ -159,6 +144,7 @@ namespace UniversalDownloaderPlatform.Engine
                 throw new Exception("Unable to retrieve user agent");
             }
 
+            //TODO: DO NOT DISPOSE
             ((IDisposable)_cookieRetriever).Dispose();
 
             try
