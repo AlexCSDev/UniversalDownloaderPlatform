@@ -13,6 +13,9 @@ using UniversalDownloaderPlatform.Common.Interfaces.Models;
 
 namespace UniversalDownloaderPlatform.PuppeteerEngine
 {
+    /// <summary>
+    /// Somewhat universal cookie retriever based on chromium browser
+    /// </summary>
     public class PuppeteerCookieRetriever : ICookieRetriever, IDisposable
     {
         private readonly Logger _logger = LogManager.GetCurrentClassLogger();
@@ -83,7 +86,7 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
                     if (_isRemoteBrowser)
                     {
                         await page.CloseAsync();
-                        throw new Exception("You are not logged in into your XMA account in remote browser. Please login and restart UniversalDownloaderPlatform.");
+                        throw new Exception("You are not logged in into your account in remote browser. Please login and restart application.");
                     }
                     if (_puppeteerEngine.IsHeadless)
                     {
@@ -94,7 +97,7 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
 
                     await page.GoToAsync(_settings.LoginPageAddress);
 
-                    await page.WaitForRequestAsync(request => request.Url == _settings.LoginCheckAddress);
+                    await page.WaitForRequestAsync(request => request.Url.Contains(_settings.LoginCheckAddress));
                 }
                 else
                 {

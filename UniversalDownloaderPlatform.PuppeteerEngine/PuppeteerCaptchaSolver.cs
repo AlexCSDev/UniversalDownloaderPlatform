@@ -17,6 +17,10 @@ using System.Net.Http;
 
 namespace UniversalDownloaderPlatform.PuppeteerEngine
 {
+    /// <summary>
+    /// Somewhat universal cookie retriever based on chromium browser.
+    /// Tested with cloudflare, technically should should support all websites with recaptcha as long as they return 403 forbidden
+    /// </summary>
     public class PuppeteerCaptchaSolver : ICaptchaSolver
     {
         private readonly string _proxyServerAddress;

@@ -82,7 +82,7 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
                 if (processList.Length > 0)
                 {
                     _logger.Debug($"{processList.Length} chrome processes are in UniversalDownloaderPlatform's folder");
-                    _logger.Warn("Running UniversalDownloaderPlatform's Chrome detected. Attempting to close it...");
+                    _logger.Warn("Running built-in chrome instance(s) detected. Attempting to close it...");
 
                     bool failed = false;
                     foreach (Process process in processList)
@@ -102,11 +102,11 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
                     if (failed)
                     {
                         _logger.Error(
-                            "Unable to close some or all UniversalDownloaderPlatform's Chrome instances. Please close them manually via process manager if you encounter any problems running this application.");
+                            "Unable to close some or all built-in chrome instances. Please close them manually via process manager if you encounter any problems running this application.");
                     }
                     else
                     {
-                        _logger.Info("Successfully killed all UniversalDownloaderPlatform's Chrome instances.");
+                        _logger.Info("Successfully killed all built-in chrome instances.");
                     }
                 }
             }
