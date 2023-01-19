@@ -408,7 +408,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
         }
 
         /// <summary>
-        /// Check if captcha was triggered. True means the captcha was triggered and cookies were updated successfully, false means there were no captcha.
+        /// Check if captcha was triggered. True means the captcha was triggered and cookies were updated successfully, false means there were no captcha. If captcha could not be solved exception will be thrown.
         /// </summary>
         /// <param name="url"></param>
         /// <param name="refererUrl"></param>
@@ -418,42 +418,54 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
         {
             if(await _captchaSolver.IsCaptchaTriggered(responseMessage))
             {
+                _logger.Trace($"[RunCaptchaCheck] Captcha found: {url}");
                 try
                 {
-                    await _captchaSemaphore.WaitAsync();
-                    using (var request = new HttpRequestMessage(HttpMethod.Get, url) { Version = _httpVersion })
+                    //Since downloading is multi-threaded we need to make sure another thread didn't solve the captcha already
+                    bool enteredImmediatelly = _captchaSemaphore.Wait(0);
+                    _logger.Trace($"[RunCaptchaCheck] enteredImmediatelly: {enteredImmediatelly}");
+
+                    bool needToSolveCaptcha = true;
+
+                    //Only recheck if we had to wait for another thread to unlock semaphore
+                    if(!enteredImmediatelly)
                     {
-                        if (!string.IsNullOrWhiteSpace(refererUrl))
+                        await _captchaSemaphore.WaitAsync();
+                        using (var request = new HttpRequestMessage(HttpMethod.Get, url) { Version = _httpVersion })
                         {
-                            try
+                            if (!string.IsNullOrWhiteSpace(refererUrl))
                             {
-                                request.Headers.Referrer = new Uri(refererUrl);
+                                try
+                                {
+                                    request.Headers.Referrer = new Uri(refererUrl);
+                                }
+                                catch (UriFormatException ex)
+                                {
+                                    _logger.Error(ex, $"Invalid referer url: {refererUrl}. Error: {ex}");
+                                }
                             }
-                            catch (UriFormatException ex)
+
+                            using (responseMessage =
+                                await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
                             {
-                                _logger.Error(ex, $"Invalid referer url: {refererUrl}. Error: {ex}");
-                            }
-                        }
-
-                        using (responseMessage =
-                            await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
-                        {
-                            if (await _captchaSolver.IsCaptchaTriggered(responseMessage))
-                            {
-                                //still triggered, solve
-                                CookieCollection cookieCollection = await _captchaSolver.SolveCaptcha(url);
-
-                                if (cookieCollection == null)
-                                    throw new Exception($"Unable to solve captcha for url: {url}");
-
-                                UpdateCookies(cookieCollection);
+                                if (!await _captchaSolver.IsCaptchaTriggered(responseMessage))
+                                    needToSolveCaptcha = false;
                             }
                         }
                     }
-                }
-                catch(Exception ex)
-                {
-                    throw; //todo check
+
+                    if(needToSolveCaptcha)
+                    {
+                        _logger.Trace($"[RunCaptchaCheck] Solving captcha: {url}");
+                        CookieCollection cookieCollection = await _captchaSolver.SolveCaptcha(url);
+
+                        if (cookieCollection == null)
+                            throw new Exception($"Unable to solve captcha for url: {url}");
+
+                        UpdateCookies(cookieCollection);
+                    }
+                    else
+                        _logger.Trace($"[RunCaptchaCheck] No need to solve captcha anymore: {url}");
                 }
                 finally
                 {
