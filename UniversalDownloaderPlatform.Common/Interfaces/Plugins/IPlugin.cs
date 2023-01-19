@@ -47,5 +47,12 @@ namespace UniversalDownloaderPlatform.Common.Interfaces.Plugins
         /// <param name="htmlContents"></param>
         /// <returns></returns>
         Task<List<string>> ExtractSupportedUrls(string htmlContents);
+
+        /// <summary>
+        /// Called before passing crawledUrl to ICrawledUrlProcessor, return true if you would like minimal processing by ICrawledUrlProcessor otherwise return false
+        /// </summary>
+        /// <param name="crawledUrl"></param>
+        /// <returns></returns>
+        Task<bool> ProcessCrawledUrl(ICrawledUrl crawledUrl);
     }
 }

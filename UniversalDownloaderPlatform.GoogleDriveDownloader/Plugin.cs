@@ -93,7 +93,7 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
 
             try
             {
-                _engine.Download(id, downloadPath, _settings.FileExistsAction);
+                _engine.Download(id, downloadPath, _settings.FileExistsAction, _settings.IsCheckRemoteFileSize);
             }
             catch (Exception ex)
             {
@@ -108,6 +108,17 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
         {
             //Let default plugin do this
             return Task.FromResult((List<string>)null);
+        }
+
+        public Task<bool> ProcessCrawledUrl(ICrawledUrl crawledUrl)
+        {
+            if (_googleDriveRegex.Match(crawledUrl.Url).Success || _googleDocsRegex.Match(crawledUrl.Url).Success)
+            {
+                _logger.Debug($"Google drive/docs found: {crawledUrl.Url}");
+                return Task.FromResult(true); //skip all checks
+            }
+
+            return Task.FromResult(false);
         }
     }
 }

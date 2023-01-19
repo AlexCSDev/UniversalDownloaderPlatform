@@ -408,12 +408,12 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
         }
 
         /// <summary>
-        /// Check if captcha was triggered. True means the captcha was triggered and cookies were updated successfully, false means there were no captcha. If captcha could not be solved exception will be thrown.
+        /// Check if captcha was triggered.
         /// </summary>
         /// <param name="url"></param>
         /// <param name="refererUrl"></param>
         /// <param name="responseMessage"></param>
-        /// <returns></returns>
+        /// <returns>True if the captcha was triggered and cookies were updated successfully, false if there were no captcha. If captcha could not be solved exception will be thrown.</returns>
         protected virtual async Task<bool> RunCaptchaCheck(string url, string refererUrl, HttpResponseMessage responseMessage)
         {
             if(await _captchaSolver.IsCaptchaTriggered(responseMessage))
@@ -421,7 +421,8 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                 _logger.Trace($"[RunCaptchaCheck] Captcha found: {url}");
                 try
                 {
-                    //Since downloading is multi-threaded we need to make sure another thread didn't solve the captcha already
+                    //Since downloading is usually multi-threaded we need to make sure another thread didn't solve the captcha already
+                    //therefore first we need to test if any other thread took semaphore already. Semaphore will be automatically taken if it is free.
                     bool enteredImmediatelly = _captchaSemaphore.Wait(0);
                     _logger.Trace($"[RunCaptchaCheck] enteredImmediatelly: {enteredImmediatelly}");
 

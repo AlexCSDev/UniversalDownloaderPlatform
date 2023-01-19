@@ -135,5 +135,26 @@ namespace UniversalDownloaderPlatform.Engine
 
             return retHashSet.ToList();
         }
+
+        public async Task ProcessCrawledUrl(ICrawledUrl crawledUrl)
+        {
+            if (crawledUrl == null)
+                throw new ArgumentNullException(nameof(crawledUrl));
+
+            if (_plugins != null && _plugins.Count > 0)
+            {
+                foreach (IPlugin plugin in _plugins)
+                {
+                    if (await plugin.ProcessCrawledUrl(crawledUrl))
+                    {
+                        crawledUrl.IsProcessedByPlugin = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!crawledUrl.IsProcessedByPlugin && await _defaultPlugin.ProcessCrawledUrl(crawledUrl))
+                crawledUrl.IsProcessedByPlugin = true;
+        }
     }
 }

@@ -69,6 +69,9 @@ namespace UniversalDownloaderPlatform.Engine
 
                             try
                             {
+                                _logger.Debug($"Calling plugin url processing for: {entry.Url}");
+                                await _pluginManager.ProcessCrawledUrl(entry);
+
                                 _logger.Debug($"Calling url processor for: {entry.Url}");
                                 bool isDownloadAllowed = await _crawledUrlProcessor.ProcessCrawledUrl(entry);
 

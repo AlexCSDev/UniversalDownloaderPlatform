@@ -175,5 +175,16 @@ namespace UniversalDownloaderPlatform.MegaDownloader
 
             return Task.FromResult(false);
         }
+
+        public Task<bool> ProcessCrawledUrl(ICrawledUrl crawledUrl)
+        {
+            if(crawledUrl.Url.StartsWith("https://mega.nz/"))
+            {
+                _logger.Debug($"Mega found: {crawledUrl.Url}");
+                return Task.FromResult(true); //mega plugin expects to see only path to the folder where everything will be saved
+            }
+
+            return Task.FromResult(false);
+        }
     }
 }
