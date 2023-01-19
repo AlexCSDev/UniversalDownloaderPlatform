@@ -11,8 +11,8 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
         public override void Load()
         {
             //Bind<IPuppeteerEngine>().To<PuppeteerEngine>().InSingletonScope();
-            Bind<ICookieRetriever>().To<PuppeteerCookieRetriever>();
-            Bind<ICaptchaSolver>().To<PuppeteerCaptchaSolver>();
+            Bind<ICookieRetriever>().To<PuppeteerCookieRetriever>().InSingletonScope();
+            Bind<ICaptchaSolver>().To<PuppeteerCaptchaSolver>().InSingletonScope();
             /*Bind<IWebBrowser>().To<WebBrowser>();
             Bind<IWebPage>().To<WebPage>();
             Bind<IWebRequest>().To<WebRequest>();
