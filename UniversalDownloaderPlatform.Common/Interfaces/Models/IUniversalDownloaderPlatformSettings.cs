@@ -52,7 +52,7 @@ namespace UniversalDownloaderPlatform.Common.Interfaces.Models
         string ProxyServerAddress { get; init; }
 
         /// <summary>
-        /// The base download directory for the downloaded files. If not set will be set to appdir\download\ICrawlTargetInfo.SaveDirectory. IMPORTANT: THIS VALUE CAN AND PROBABLY WILL CHANGE AFTER BeforeStart METHODS ARE CALLED. DO NOT COPY IT IN THIS METHOD.
+        /// The base download directory for the downloaded files. If not set will be set to appdir\download\ICrawlTargetInfo.SaveDirectory. IMPORTANT: THIS VALUE CAN AND PROBABLY WILL CHANGE AFTER BeforeStart METHODS ARE CALLED. DO NOT COPY IT IN THIS METHOD UNLESS EXPLICITLY ALLOWED.
         /// </summary>
         string DownloadDirectory { get; set; } //seems like you can't clone records implementing interface using *with* keyword, so can't use init here unfortunately.
     }

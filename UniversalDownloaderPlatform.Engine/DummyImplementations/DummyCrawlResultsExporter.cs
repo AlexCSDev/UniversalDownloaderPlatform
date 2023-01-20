@@ -10,6 +10,11 @@ namespace UniversalDownloaderPlatform.Engine.DummyImplementations
 {
     internal class DummyCrawlResultsExporter : ICrawlResultsExporter
     {
+        public Task BeforeStart(IUniversalDownloaderPlatformSettings settings)
+        {
+            return Task.CompletedTask;
+        }
+
         public Task ExportCrawlResults(ICrawlTargetInfo crawlTargetInfo, List<ICrawledUrl> crawledUrls)
         {
             return Task.CompletedTask;

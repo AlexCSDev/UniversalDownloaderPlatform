@@ -199,6 +199,8 @@ namespace UniversalDownloaderPlatform.Engine
                     throw new UniversalDownloaderPlatformException("Unable to create download directory", ex);
                 }
 
+                await _crawlResultsExporter.BeforeStart(settings);
+
                 _logger.Debug("Starting crawler");
                 OnStatusChanged(new DownloaderStatusChangedEventArgs(DownloaderStatus.Crawling));
                 List<ICrawledUrl> crawledUrls = await _pageCrawler.Crawl(crawlTargetInfo);

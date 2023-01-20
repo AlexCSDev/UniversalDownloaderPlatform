@@ -7,6 +7,12 @@ namespace UniversalDownloaderPlatform.Common.Interfaces
     public interface ICrawlResultsExporter
     {
         /// <summary>
+        /// Initialization function, called on every UniversalDownloader.Download call. IUniversalDownloaderPlatformSettings.DownloadDirectory can be used here safely.
+        /// </summary>
+        /// <returns></returns>
+        Task BeforeStart(IUniversalDownloaderPlatformSettings settings);
+
+        /// <summary>
         /// Generate file with crawl results inside the download directory
         /// </summary>
         /// <param name="crawlTargetInfo">Crawl target information</param>
