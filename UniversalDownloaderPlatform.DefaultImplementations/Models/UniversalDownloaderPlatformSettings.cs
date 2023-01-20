@@ -10,32 +10,18 @@ namespace UniversalDownloaderPlatform.DefaultImplementations.Models
 {
     public record UniversalDownloaderPlatformSettings : IUniversalDownloaderPlatformSettings
     {
-        private const string DefaultUserAgent =
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2486.0 Safari/537.36 Edge/13.10586";
         private const int DefaultMaxDownloadRetries = 10;
         private const int DefaultRetryMultiplier = 5;
         private const FileExistsAction DefaultRemoteFileSizeNotAvailableAction =
             FileExistsAction.BackupIfDifferent;
         private const bool DefaultIsCheckRemoteFileSize = true;
 
-        private string _userAgent;
         private int _maxDownloadRetries;
         private int _retryMultiplier;
 
-        public CookieContainer CookieContainer { get; init; }
+        public CookieContainer CookieContainer { get; set; }
 
-        public string UserAgent
-        {
-            get => _userAgent;
-            init
-            {
-                string newValue = value;
-                if (newValue == null)
-                    newValue = DefaultUserAgent;
-
-                _userAgent = newValue;
-            }
-        }
+        public string UserAgent { get; set; }
 
         public List<string> UrlBlackList { get; init; }
 
@@ -69,7 +55,6 @@ namespace UniversalDownloaderPlatform.DefaultImplementations.Models
 
         public UniversalDownloaderPlatformSettings()
         {
-            _userAgent = DefaultUserAgent;
             _maxDownloadRetries = DefaultMaxDownloadRetries;
             _retryMultiplier = DefaultRetryMultiplier;
             FileExistsAction = DefaultRemoteFileSizeNotAvailableAction;

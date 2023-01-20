@@ -25,5 +25,12 @@ namespace UniversalDownloaderPlatform.Common.Interfaces
         /// <param name="htmlContents"></param>
         /// <returns>List of extracted urls. If htmlContents is empty or null returns empty list.</returns>
         Task<List<string>> ExtractSupportedUrls(string htmlContents);
+
+        /// <summary>
+        /// Run crawled url through every plugin to determine if any of the plugins want to process this url and to have minimal processing of it by ICrawledUrlProcessor
+        /// </summary>
+        /// <param name="crawledUrl"></param>
+        /// <returns></returns>
+        Task ProcessCrawledUrl(ICrawledUrl crawledUrl);
     }
 }

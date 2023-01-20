@@ -15,12 +15,12 @@ namespace UniversalDownloaderPlatform.Common.Interfaces.Models
         /// <summary>
         /// Cookie container with all required cookies, can be null
         /// </summary>
-        CookieContainer CookieContainer { get; init; }
+        CookieContainer CookieContainer { get; set; }
 
         /// <summary>
-        /// User agent string
+        /// User agent string, if set to null ICookieRetriever will be called to set it
         /// </summary>
-        string UserAgent { get; init; }
+        string UserAgent { get; set; }
 
         /// <summary>
         /// Urls containing anything from this list will be ignored by all components
@@ -52,7 +52,7 @@ namespace UniversalDownloaderPlatform.Common.Interfaces.Models
         string ProxyServerAddress { get; init; }
 
         /// <summary>
-        /// The base download directory for the downloaded files. If not set will be set to appdir\download\ICrawlTargetInfo.SaveDirectory. IMPORTANT: THIS VALUE CAN AND PROBABLY WILL CHANGE AFTER BeforeStart METHODS ARE CALLED. DO NOT COPY IT IN THIS METHOD.
+        /// The base download directory for the downloaded files. If not set will be set to appdir\download\ICrawlTargetInfo.SaveDirectory. IMPORTANT: THIS VALUE CAN AND PROBABLY WILL CHANGE AFTER BeforeStart METHODS ARE CALLED. DO NOT COPY IT IN THIS METHOD UNLESS EXPLICITLY ALLOWED.
         /// </summary>
         string DownloadDirectory { get; set; } //seems like you can't clone records implementing interface using *with* keyword, so can't use init here unfortunately.
     }

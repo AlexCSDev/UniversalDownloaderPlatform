@@ -11,5 +11,6 @@ namespace UniversalDownloaderPlatform.DefaultImplementations.Models
         public string Filename { get; set; }
         public string DownloadPath { get; set; }
         public bool IsDownloaded { get; set; }
+        public bool IsProcessedByPlugin { get; set; }
     }
 }

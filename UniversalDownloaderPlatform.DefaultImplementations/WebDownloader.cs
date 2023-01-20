@@ -3,8 +3,10 @@ using System.Collections;
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using NLog;
 using UniversalDownloaderPlatform.Common.Enums;
@@ -21,7 +23,12 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
     {
         protected HttpClient _httpClient;
         protected HttpClientHandler _httpClientHandler;
+
         protected readonly IRemoteFileSizeChecker _remoteFileSizeChecker;
+        protected readonly ICaptchaSolver _captchaSolver;
+
+        private readonly SemaphoreSlim _captchaSemaphore;
+
         private readonly Logger _logger = LogManager.GetCurrentClassLogger();
         protected int _maxRetries;
         protected int _retryMultiplier;
@@ -30,10 +37,12 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
 
         protected readonly Version _httpVersion = HttpVersion.Version20;
 
-        public WebDownloader(IRemoteFileSizeChecker remoteFileSizeChecker)
+        public WebDownloader(IRemoteFileSizeChecker remoteFileSizeChecker, ICaptchaSolver captchaSolver)
         {
-            _remoteFileSizeChecker =
-                remoteFileSizeChecker ?? throw new ArgumentNullException(nameof(remoteFileSizeChecker));
+            _remoteFileSizeChecker = remoteFileSizeChecker;
+            _captchaSolver = captchaSolver;
+
+            _captchaSemaphore = new SemaphoreSlim(1, 1);
         }
 
         public virtual async Task BeforeStart(IUniversalDownloaderPlatformSettings settings)
@@ -59,6 +68,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(settings.UserAgent);
 
             await _remoteFileSizeChecker.BeforeStart(settings);
+            await _captchaSolver.BeforeStart(settings);
         }
 
         public virtual async Task DownloadFile(string url, string path, string refererUrl = null)
@@ -157,6 +167,12 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                     using (HttpResponseMessage responseMessage =
                         await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
                     {
+                        if (await RunCaptchaCheck(url, refererUrl, responseMessage))
+                        {
+                            await DownloadFileInternal(url, path, refererUrl, retry, retryTooManyRequests); //increase retry counter?
+                            return;
+                        }
+
                         if (!responseMessage.IsSuccessStatusCode)
                         {
                             switch (responseMessage.StatusCode)
@@ -318,6 +334,9 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                     using (HttpResponseMessage responseMessage =
                         await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
                     {
+                        if(await RunCaptchaCheck(url, refererUrl, responseMessage))
+                            return await DownloadStringInternal(url, refererUrl, retry, retryTooManyRequests); //increase retry counter?
+
                         if (!responseMessage.IsSuccessStatusCode)
                         {
                             switch (responseMessage.StatusCode)
@@ -386,6 +405,78 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             {
                 throw new DownloadException($"Unable to retrieve data from {url}: {ex.Message}", ex);
             }
+        }
+
+        /// <summary>
+        /// Check if captcha was triggered.
+        /// </summary>
+        /// <param name="url"></param>
+        /// <param name="refererUrl"></param>
+        /// <param name="responseMessage"></param>
+        /// <returns>True if the captcha was triggered and cookies were updated successfully, false if there were no captcha. If captcha could not be solved exception will be thrown.</returns>
+        protected virtual async Task<bool> RunCaptchaCheck(string url, string refererUrl, HttpResponseMessage responseMessage)
+        {
+            if(await _captchaSolver.IsCaptchaTriggered(responseMessage))
+            {
+                _logger.Trace($"[RunCaptchaCheck] Captcha found: {url}");
+                try
+                {
+                    //Since downloading is usually multi-threaded we need to make sure another thread didn't solve the captcha already
+                    //therefore first we need to test if any other thread took semaphore already. Semaphore will be automatically taken if it is free.
+                    bool enteredImmediatelly = _captchaSemaphore.Wait(0);
+                    _logger.Trace($"[RunCaptchaCheck] enteredImmediatelly: {enteredImmediatelly}");
+
+                    bool needToSolveCaptcha = true;
+
+                    //Only recheck if we had to wait for another thread to unlock semaphore
+                    if(!enteredImmediatelly)
+                    {
+                        await _captchaSemaphore.WaitAsync();
+                        using (var request = new HttpRequestMessage(HttpMethod.Get, url) { Version = _httpVersion })
+                        {
+                            if (!string.IsNullOrWhiteSpace(refererUrl))
+                            {
+                                try
+                                {
+                                    request.Headers.Referrer = new Uri(refererUrl);
+                                }
+                                catch (UriFormatException ex)
+                                {
+                                    _logger.Error(ex, $"Invalid referer url: {refererUrl}. Error: {ex}");
+                                }
+                            }
+
+                            using (responseMessage =
+                                await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead))
+                            {
+                                if (!await _captchaSolver.IsCaptchaTriggered(responseMessage))
+                                    needToSolveCaptcha = false;
+                            }
+                        }
+                    }
+
+                    if(needToSolveCaptcha)
+                    {
+                        _logger.Trace($"[RunCaptchaCheck] Solving captcha: {url}");
+                        CookieCollection cookieCollection = await _captchaSolver.SolveCaptcha(url);
+
+                        if (cookieCollection == null)
+                            throw new Exception($"Unable to solve captcha for url: {url}");
+
+                        UpdateCookies(cookieCollection);
+                    }
+                    else
+                        _logger.Trace($"[RunCaptchaCheck] No need to solve captcha anymore: {url}");
+                }
+                finally
+                {
+                    _captchaSemaphore.Release();
+                }
+
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>

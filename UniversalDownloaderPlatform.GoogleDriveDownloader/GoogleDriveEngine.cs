@@ -55,17 +55,17 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
             });
         }
 
-        public void Download(string id, string path, FileExistsAction fileExistsAction)
+        public void Download(string id, string path, FileExistsAction fileExistsAction, bool isCheckRemoteFileSize)
         {
             if (Service == null)
                 return;
 
             File fileResource = Service.Files.Get(id).Execute();
 
-            DownloadFileResource(fileResource, path, fileExistsAction, true);
+            DownloadFileResource(fileResource, path, fileExistsAction, isCheckRemoteFileSize, true);
         }
 
-        private void DownloadFileResource(File fileResource, string path, FileExistsAction fileExistsAction, bool rootPath = true)
+        private void DownloadFileResource(File fileResource, string path, FileExistsAction fileExistsAction, bool isCheckRemoteFileSize, bool rootPath = true)
         {
             string sanitizedFilename = PathSanitizer.SanitizePath(fileResource.Name).Trim();
 
@@ -95,13 +95,12 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
 
             if (fileResource.MimeType != "application/vnd.google-apps.folder")
             {
+                long? remoteFileSize = fileResource.Size;
+
                 if (System.IO.File.Exists(path))
                 {
-                    if (fileExistsAction == FileExistsAction.KeepExisting)
-                    {
-                        Logger.Warn("[Google Drive] FILE EXISTS: " + path);
+                    if (!FileExistsActionHelper.DoFileExistsActionBeforeDownload(path, remoteFileSize ?? 0, isCheckRemoteFileSize, fileExistsAction, LoggingFunction))
                         return;
-                    }
                 }
 
                 if (!Directory.Exists(path))
@@ -175,7 +174,7 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
                 var subFolderItems = RessInFolder(fileResource.Id);
 
                 foreach (var item in subFolderItems)
-                    DownloadFileResource(item, path, fileExistsAction, false);
+                    DownloadFileResource(item, path, fileExistsAction, isCheckRemoteFileSize, false);
             }
         }
 

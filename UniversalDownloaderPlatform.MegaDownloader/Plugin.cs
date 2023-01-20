@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using NLog;
 using UniversalDownloaderPlatform.Common.Enums;
 using UniversalDownloaderPlatform.Common.Exceptions;
+using UniversalDownloaderPlatform.Common.Interfaces;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
 using UniversalDownloaderPlatform.Common.Interfaces.Plugins;
 using DownloadException = UniversalDownloaderPlatform.Common.Exceptions.DownloadException;
@@ -61,6 +62,11 @@ namespace UniversalDownloaderPlatform.MegaDownloader
             {
                 LogManager.GetCurrentClassLogger().Fatal("!!!![MEGA]: Unable to initialize mega downloader, check email and password! No mega files will be downloaded in this session. !!!!");
             }
+        }
+
+        public void OnLoad(IDependencyResolver dependencyResolver)
+        {
+            //do nothing
         }
 
         public Task BeforeStart(IUniversalDownloaderPlatformSettings settings)
@@ -166,6 +172,17 @@ namespace UniversalDownloaderPlatform.MegaDownloader
 
             if (matchesOldFormat.Count > 0 || matchesNewFormat.Count > 0)
                 return Task.FromResult(true);
+
+            return Task.FromResult(false);
+        }
+
+        public Task<bool> ProcessCrawledUrl(ICrawledUrl crawledUrl)
+        {
+            if(crawledUrl.Url.StartsWith("https://mega.nz/"))
+            {
+                _logger.Debug($"Mega found: {crawledUrl.Url}");
+                return Task.FromResult(true); //mega plugin expects to see only path to the folder where everything will be saved
+            }
 
             return Task.FromResult(false);
         }

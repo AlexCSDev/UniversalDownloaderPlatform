@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Ninject;
 using NLog;
 using UniversalDownloaderPlatform.Common.Enums;
 using UniversalDownloaderPlatform.Common.Interfaces;
@@ -22,7 +23,7 @@ namespace UniversalDownloaderPlatform.Engine
         private readonly List<IPlugin> _plugins;
         private readonly IPlugin _defaultPlugin;
 
-        public PluginManager(IPlugin defaultPlugin)
+        public PluginManager(IPlugin defaultPlugin, IDependencyResolver dependencyResolver)
         {
             _defaultPlugin = defaultPlugin;
 
@@ -56,6 +57,8 @@ namespace UniversalDownloaderPlatform.Engine
                         _logger.Error($"Invalid plugin {filename}: IPlugin interface could not be created");
                         continue;
                     }
+
+                    plugin.OnLoad(dependencyResolver);
 
                     _plugins.Add(plugin);
                     
@@ -131,6 +134,27 @@ namespace UniversalDownloaderPlatform.Engine
             }
 
             return retHashSet.ToList();
+        }
+
+        public async Task ProcessCrawledUrl(ICrawledUrl crawledUrl)
+        {
+            if (crawledUrl == null)
+                throw new ArgumentNullException(nameof(crawledUrl));
+
+            if (_plugins != null && _plugins.Count > 0)
+            {
+                foreach (IPlugin plugin in _plugins)
+                {
+                    if (await plugin.ProcessCrawledUrl(crawledUrl))
+                    {
+                        crawledUrl.IsProcessedByPlugin = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!crawledUrl.IsProcessedByPlugin && await _defaultPlugin.ProcessCrawledUrl(crawledUrl))
+                crawledUrl.IsProcessedByPlugin = true;
         }
     }
 }
