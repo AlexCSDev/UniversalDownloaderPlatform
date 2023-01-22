@@ -22,7 +22,7 @@ namespace UniversalDownloaderPlatform.Common.Interfaces.Plugins
         void OnLoad(IDependencyResolver dependencyResolver);
 
         /// <summary>
-        /// Initialization function, called by IPluginManager's BeforeStart() function.
+        /// Initialization function, called by IPluginManager's BeforeStart() function. WARNING: plugins SHOULD NOT call .BeforeStart of any built-in classes here.
         /// </summary>
         /// <returns></returns>
         /// <param name="settings">Settings for the current download task</param>

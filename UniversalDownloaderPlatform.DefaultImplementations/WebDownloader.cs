@@ -24,7 +24,6 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
         protected HttpClient _httpClient;
         protected HttpClientHandler _httpClientHandler;
 
-        protected readonly IRemoteFileSizeChecker _remoteFileSizeChecker;
         protected readonly ICaptchaSolver _captchaSolver;
 
         private readonly SemaphoreSlim _captchaSemaphore;
@@ -37,9 +36,8 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
 
         protected readonly Version _httpVersion = HttpVersion.Version20;
 
-        public WebDownloader(IRemoteFileSizeChecker remoteFileSizeChecker, ICaptchaSolver captchaSolver)
+        public WebDownloader(ICaptchaSolver captchaSolver)
         {
-            _remoteFileSizeChecker = remoteFileSizeChecker;
             _captchaSolver = captchaSolver;
 
             _captchaSemaphore = new SemaphoreSlim(1, 1);
@@ -67,18 +65,17 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             _httpClient = new HttpClient(_httpClientHandler);
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(settings.UserAgent);
 
-            await _remoteFileSizeChecker.BeforeStart(settings);
             await _captchaSolver.BeforeStart(settings);
         }
 
-        public virtual async Task DownloadFile(string url, string path, string refererUrl = null)
+        public virtual async Task DownloadFile(string url, string path, long fileSize, string refererUrl = null)
         {
             if(string.IsNullOrEmpty(url))
                 throw new ArgumentException("Argument cannot be null or empty", nameof(url));
             if(string.IsNullOrEmpty(path))
                 throw new ArgumentException("Argument cannot be null or empty", nameof(path));
 
-            await DownloadFileInternal(url, path, refererUrl);
+            await DownloadFileInternal(url, path, fileSize, refererUrl);
         }
 
         public virtual void UpdateCookies(CookieCollection cookieCollection)
@@ -92,7 +89,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             }
         }
 
-        private async Task DownloadFileInternal(string url, string path, string refererUrl, int retry = 0, int retryTooManyRequests = 0)
+        private async Task DownloadFileInternal(string url, string path, long fileSize, string refererUrl, int retry = 0, int retryTooManyRequests = 0)
         {
             //Warn: path is not being checked to be a valid path here
 
@@ -121,19 +118,9 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
             if(retryTooManyRequests > 0)
                 await Task.Delay(retryTooManyRequests * _retryMultiplier * 1000);
 
-            long remoteFileSize = -1;
-            try
-            {
-                remoteFileSize = await _remoteFileSizeChecker.GetRemoteFileSize(url);
-            }
-            catch (Exception ex)
-            {
-                _logger.Error(ex, $"Unable to retrieve remote file size, size check will be skipped: {ex}");
-            }
-
             if (File.Exists(path))
             {
-                if (!FileExistsActionHelper.DoFileExistsActionBeforeDownload(path, remoteFileSize, _isCheckRemoteFileSize, _fileExistsAction, LoggingFunction))
+                if (!FileExistsActionHelper.DoFileExistsActionBeforeDownload(path, fileSize, _isCheckRemoteFileSize, _fileExistsAction, LoggingFunction))
                     return;
             }
 
@@ -169,7 +156,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                     {
                         if (await RunCaptchaCheck(url, refererUrl, responseMessage))
                         {
-                            await DownloadFileInternal(url, path, refererUrl, retry, retryTooManyRequests); //increase retry counter?
+                            await DownloadFileInternal(url, path, fileSize, refererUrl, retry, retryTooManyRequests); //increase retry counter?
                             return;
                         }
 
@@ -195,13 +182,13 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                                     string newLocation = responseMessage.Headers.Location.ToString();
                                     _logger.Debug(
                                         $"{url} has been moved to: {newLocation}, retrying using new url");
-                                    await DownloadFileInternal(newLocation, refererUrl, path);
+                                    await DownloadFileInternal(newLocation, path, fileSize, refererUrl);
                                     return;
                                 case HttpStatusCode.TooManyRequests:
                                     retryTooManyRequests++;
                                     _logger.Debug(
                                         $"Too many requests for {url}, waiting for {retryTooManyRequests * _retryMultiplier} seconds...");
-                                    await DownloadFileInternal(url, path, refererUrl, 0, retryTooManyRequests);
+                                    await DownloadFileInternal(url, path, fileSize, refererUrl, 0, retryTooManyRequests);
                                     return;
                             }
 
@@ -209,7 +196,7 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
 
                             _logger.Debug(
                                 $"{url} returned status code {responseMessage.StatusCode}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)...");
-                            await DownloadFileInternal(url, path, refererUrl, retry);
+                            await DownloadFileInternal(url, path, fileSize, refererUrl, retry);
                             return;
                         }
 
@@ -224,23 +211,23 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                         _logger.Debug($"Finished download: {url}");
 
                         FileInfo fileInfo = new FileInfo(temporaryFilePath);
-                        long fileSize = fileInfo.Length;
+                        long downloadedFileSize = fileInfo.Length;
                         fileInfo = null;
 
-                        if (remoteFileSize > 0 && fileSize != remoteFileSize)
+                        if (fileSize > 0 && downloadedFileSize != fileSize)
                         {
                             _logger.Warn(
-                                $"Downloaded file size differs from the size returned by server. Local size: {fileSize}, remote size: {remoteFileSize}. File {url} will be redownloaded.");
+                                $"Downloaded file size differs from the size returned by server. Local size: {downloadedFileSize}, remote size: {fileSize}. File {url} will be redownloaded.");
 
                             File.Delete(temporaryFilePath);
 
                             retry++;
 
-                            await DownloadFileInternal(url, path, refererUrl, retry);
+                            await DownloadFileInternal(url, path, fileSize, refererUrl, retry);
                             return;
                         }
 
-                        _logger.Debug($"File size check passed for: {url}");
+                        _logger.Debug($"File size check passed/skipped for: {url}");
 
                         _logger.Debug($"Renaming temporary file for: {url}");
 
@@ -260,21 +247,21 @@ namespace UniversalDownloaderPlatform.DefaultImplementations
                 retry++;
                 _logger.Debug(ex,
                     $"Encountered error while trying to download {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
-                await DownloadFileInternal(url, path, refererUrl, retry);
+                await DownloadFileInternal(url, path, fileSize, refererUrl, retry);
             }
             catch (IOException ex) when (!(ex is DirectoryNotFoundException))
             {
                 retry++;
                 _logger.Debug(ex,
                     $"Encountered IO error while trying to access {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
-                await DownloadFileInternal(url, path, refererUrl, retry);
+                await DownloadFileInternal(url, path, fileSize, refererUrl, retry);
             }
             catch (SocketException ex)
             {
                 retry++;
                 _logger.Debug(ex,
                     $"Encountered connection error while trying to access {url}, retrying in {retry * _retryMultiplier} seconds ({_maxRetries - retry} retries left)... The error is: {ex}");
-                await DownloadFileInternal(url, path, refererUrl, retry);
+                await DownloadFileInternal(url, path, fileSize, refererUrl, retry);
             }
             catch (DownloadException ex)
             {

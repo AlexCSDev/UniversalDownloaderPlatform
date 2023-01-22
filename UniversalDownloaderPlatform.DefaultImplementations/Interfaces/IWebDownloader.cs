@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
 
-namespace UniversalDownloaderPlatform.Common.Interfaces
+namespace UniversalDownloaderPlatform.DefaultImplementations.Interfaces
 {
     public interface IWebDownloader
     {
@@ -22,8 +22,9 @@ namespace UniversalDownloaderPlatform.Common.Interfaces
         /// </summary>
         /// <param name="url">File url</param>
         /// <param name="path">Path where the file should be saved</param>
+        /// <param name="fileSize">Expected file size, set to -1 or 0 if unknown</param>
         /// <param name="refererUrl">Url to be placed into the referer header, can be null</param>
-        Task DownloadFile(string url, string path, string refererUrl = null);
+        Task DownloadFile(string url, string path, long fileSize, string refererUrl = null);
 
         /// <summary>
         /// Download url as string data

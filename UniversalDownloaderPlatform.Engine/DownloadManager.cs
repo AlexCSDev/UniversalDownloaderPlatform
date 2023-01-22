@@ -32,6 +32,13 @@ namespace UniversalDownloaderPlatform.Engine
             _urlChecker = urlChecker ?? throw new ArgumentNullException(nameof(urlChecker));
         }
 
+        public async Task BeforeStart(IUniversalDownloaderPlatformSettings settings)
+        {
+            await _pluginManager.BeforeStart(settings);
+            await _urlChecker.BeforeStart(settings);
+            await _crawledUrlProcessor.BeforeStart(settings);
+        }
+
         public async Task Download(List<ICrawledUrl> crawledUrls, CancellationToken cancellationToken)
         {
             if(crawledUrls == null)

@@ -5,6 +5,10 @@
         string Url { get; set; }
         string Filename { get; set; }
         /// <summary>
+        /// File size in bytes. It is expected that this field is filled either by IPlugin.ProcessCrawledUrl or ICrawledUrlProcessor. -1 means that the size was not obtained.
+        /// </summary>
+        long FileSize { get; set; }
+        /// <summary>
         /// Download path relative to the download folder
         /// </summary>
         string DownloadPath { get; set; }

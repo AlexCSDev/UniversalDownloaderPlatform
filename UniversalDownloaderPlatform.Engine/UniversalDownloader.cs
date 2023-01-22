@@ -25,16 +25,12 @@ namespace UniversalDownloaderPlatform.Engine
 {
     public sealed class UniversalDownloader : IDisposable
     {
-        private readonly IPluginManager _pluginManager;
         private readonly IDownloadManager _downloadManager;
         private readonly IPageCrawler _pageCrawler;
         private readonly ICrawlTargetInfoRetriever _crawlTargetInfoRetriever;
         private readonly ICrawlResultsExporter _crawlResultsExporter;
-        private readonly IUrlChecker _urlChecker;
-        private readonly IWebDownloader _webDownloader;
         private readonly ICookieRetriever _cookieRetriever;
         private readonly ICookieValidator _cookieValidator;
-        private readonly ICrawledUrlProcessor _crawledUrlProcessor;
         private readonly IKernel _kernel;
 
         private readonly SemaphoreSlim _initializationSemaphore;
@@ -84,9 +80,6 @@ namespace UniversalDownloaderPlatform.Engine
             _pageCrawler.NewCrawledUrl += PageCrawlerOnNewCrawledUrl;
             _pageCrawler.CrawlerMessage += PageCrawlerOnCrawlerMessage;
 
-            _logger.Debug("Initializing plugin manager");
-            _pluginManager = _kernel.Get<IPluginManager>();
-
             _logger.Debug("Initializing download manager");
             _downloadManager = _kernel.Get<IDownloadManager>();
             _downloadManager.FileDownloaded += DownloadManagerOnFileDownloaded;
@@ -94,20 +87,11 @@ namespace UniversalDownloaderPlatform.Engine
             _logger.Debug("Initializing crawl results exporter");
             _crawlResultsExporter = _kernel.Get<ICrawlResultsExporter>();
 
-            _logger.Debug("Initializing url checker");
-            _urlChecker = _kernel.Get<IUrlChecker>();
-
-            _logger.Debug("Initializing web downloader");
-            _webDownloader = _kernel.Get<IWebDownloader>();
-
             _logger.Debug("Initializing cookie retriever");
             _cookieRetriever = _kernel.Get<ICookieRetriever>();
 
             _logger.Debug("Initializing cookie validator");
             _cookieValidator = _kernel.Get<ICookieValidator>();
-
-            _logger.Debug("Initializing crawled url processor");
-            _crawledUrlProcessor = _kernel.Get<ICrawledUrlProcessor>();
 
             OnStatusChanged(new DownloaderStatusChangedEventArgs(DownloaderStatus.Ready));
         }
@@ -171,11 +155,8 @@ namespace UniversalDownloaderPlatform.Engine
 
                 _cancellationTokenSource = new CancellationTokenSource();
 
-                //Call initialization code in all plugins
-                await _urlChecker.BeforeStart(settings);
-                await _webDownloader.BeforeStart(settings);
-                await _pluginManager.BeforeStart(settings);
-                await _crawledUrlProcessor.BeforeStart(settings);
+                //Initialize stuff, those will in turn initialize anything they reference
+                await _downloadManager.BeforeStart(settings);
                 await _pageCrawler.BeforeStart(settings);
                 
                 await _cookieValidator.ValidateCookies(settings.CookieContainer);

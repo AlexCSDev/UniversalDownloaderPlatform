@@ -33,7 +33,7 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
             }
 
             _googleDriveRegex = new Regex("https:\\/\\/drive\\.google\\.com\\/(?:file\\/d\\/|open\\?id\\=|drive\\/folders\\/|folderview\\?id=|drive\\/u\\/[0-9]+\\/folders\\/)([A-Za-z0-9_-]+)");
-            _googleDocsRegex = new Regex("https:\\/\\/docs\\.google\\.com\\/(?>document|spreadsheets)\\/d\\/([a-zA-Z0-9-_]+)");
+            _googleDocsRegex = new Regex("https:\\/\\/docs\\.google\\.com\\/(?>document|spreadsheets)\\/d(?>\\/e)?\\/([a-zA-Z0-9-_]+)");
             _engine = new GoogleDriveEngine();
         }
 

@@ -1,20 +1,22 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
 
 namespace UniversalDownloaderPlatform.DefaultImplementations.Interfaces
 {
-    public interface IRemoteFileSizeChecker
+    public interface IRemoteFileInfoRetriever
     {
         /// <summary>
         /// Initialization function, called on every UniversalDownloader.Download call
         /// </summary>
         Task BeforeStart(IUniversalDownloaderPlatformSettings settings);
         /// <summary>
-        /// Get size in bytes of the remote file. Returns 0 if not available.
+        /// Retrieve name and size of remote file
         /// </summary>
-        /// <param name="url">Url of the remote file</param>
-        /// <param name="refererUrl">Url to be placed into the referer header, can be null</param>
         /// <returns></returns>
-        Task<long> GetRemoteFileSize(string url, string refererUrl = null);
+        public Task<(string, long)> GetRemoteFileInfo(string url, bool useMediaType, string refererUrl = null);
     }
 }
