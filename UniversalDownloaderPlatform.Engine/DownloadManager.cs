@@ -77,9 +77,6 @@ namespace UniversalDownloaderPlatform.Engine
 
                                 if (isDownloadAllowed)
                                 {
-                                    if (string.IsNullOrWhiteSpace(entry.DownloadPath))
-                                        throw new DownloadException($"Download path is not filled for {entry.Url}");
-
                                     await _pluginManager.DownloadCrawledUrl(entry);
                                 }
                                 else
