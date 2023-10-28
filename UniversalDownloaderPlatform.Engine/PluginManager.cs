@@ -111,6 +111,7 @@ namespace UniversalDownloaderPlatform.Engine
 
             HashSet<string> dedupeHashSet = new HashSet<string>();
             List<string> retList = new List<string>(); 
+
             if (_plugins != null && _plugins.Count > 0)
             {
                 foreach (IPlugin plugin in _plugins)
@@ -130,7 +131,7 @@ namespace UniversalDownloaderPlatform.Engine
             {
                 foreach (string url in defaultPluginRetList)
                 {
-                    if(!dedupeHashSet.Contains(url) && dedupeHashSet.Add(url))
+                    if(dedupeHashSet.Add(url))
                         retList.Add(url);
                 }
             }
