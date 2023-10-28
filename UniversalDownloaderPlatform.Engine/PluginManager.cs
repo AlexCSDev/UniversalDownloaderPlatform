@@ -109,7 +109,8 @@ namespace UniversalDownloaderPlatform.Engine
             if(string.IsNullOrWhiteSpace(htmlContents))
                 return new List<string>();
 
-            HashSet<string> retHashSet = new HashSet<string>();
+            HashSet<string> dedupeHashSet = new HashSet<string>();
+            List<string> retList = new List<string>(); 
             if (_plugins != null && _plugins.Count > 0)
             {
                 foreach (IPlugin plugin in _plugins)
@@ -118,7 +119,8 @@ namespace UniversalDownloaderPlatform.Engine
                     if (pluginRetList != null && pluginRetList.Count > 0)
                     {
                         foreach(string url in pluginRetList)
-                            retHashSet.Add(url);
+                            if(dedupeHashSet.Add(url))
+                                retList.Add(url);
                     }
                 }
             }
@@ -128,12 +130,12 @@ namespace UniversalDownloaderPlatform.Engine
             {
                 foreach (string url in defaultPluginRetList)
                 {
-                    if(!retHashSet.Contains(url))
-                        retHashSet.Add(url);
+                    if(!dedupeHashSet.Contains(url) && dedupeHashSet.Add(url))
+                        retList.Add(url);
                 }
             }
 
-            return retHashSet.ToList();
+            return retList;
         }
 
         public async Task ProcessCrawledUrl(ICrawledUrl crawledUrl)
