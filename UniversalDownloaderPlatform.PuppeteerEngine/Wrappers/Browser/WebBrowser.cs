@@ -10,9 +10,9 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine.Wrappers.Browser
     /// </summary>
     public sealed class WebBrowser : IWebBrowser
     {
-        private readonly PuppeteerSharp.Browser _browser;
+        private readonly PuppeteerSharp.IBrowser _browser;
 
-        public WebBrowser(PuppeteerSharp.Browser browser)
+        public WebBrowser(PuppeteerSharp.IBrowser browser)
         {
             _browser = browser ?? throw new ArgumentNullException(nameof(browser));
         }
