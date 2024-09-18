@@ -72,8 +72,14 @@ namespace UniversalDownloaderPlatform.MegaDownloader
         public Task BeforeStart(IUniversalDownloaderPlatformSettings settings)
         {
             _settings = settings;
-            _megaDownloader.BeforeStart(settings.MaxDownloadRetries, settings.IsCheckRemoteFileSize);
-
+			
+            if (_megaDownloader != null)
+				_megaDownloader.BeforeStart(settings.MaxDownloadRetries, settings.IsCheckRemoteFileSize);
+/*### How can I use this library when I have a proxy with authentication?
+You can add the following line to specify proxy credentials for the whole application.
+```csharp
+WebRequest.DefaultWebProxy.Credentials = New NetworkCredentails("Username", "Password")
+```*/
             return Task.CompletedTask;
         }
 
