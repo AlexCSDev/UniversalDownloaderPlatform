@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -17,7 +17,7 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
 {
     internal class PuppeteerEngine : IPuppeteerEngine, IDisposable
     {
-        private Browser _browser;
+        private IBrowser _browser;
         private IWebBrowser _browserWrapper;
 
         private bool _headless;
@@ -132,7 +132,7 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
             try
             {
                 _logger.Debug("Downloading browser");
-                await new BrowserFetcher().DownloadAsync(BrowserFetcher.DefaultRevision);
+                await new BrowserFetcher().DownloadAsync();
                 _logger.Debug("Launching browser");
 
                 List<string> browserArguments = new List<string>();
@@ -154,7 +154,7 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
                 });
 
                 _logger.Debug("Opening new page");
-                Page descriptionPage = await _browser.NewPageAsync();
+                IPage descriptionPage = await _browser.NewPageAsync();
                 await descriptionPage.SetContentAsync("<h1>This is a browser of universal downloader platform</h1>");
 
                 _logger.Debug("Creating IWebBrowser");
@@ -184,7 +184,7 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
                 });
 
                 _logger.Debug("Opening new page");
-                Page descriptionPage = await _browser.NewPageAsync();
+                IPage descriptionPage = await _browser.NewPageAsync();
                 await descriptionPage.SetContentAsync("<h1>This is a browser of universal downloader platform</h1>");
 
                 _logger.Debug("Creating IWebBrowser");
