@@ -14,7 +14,7 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine.Interfaces.Wrappers.Browse
         Task<IWebResponse> GoToAsync(string url, int? timeout = null, WaitUntilNavigation[] waitUntil = null);
         Task SetUserAgentAsync(string userAgent);
         Task<string> GetContentAsync();
-        Task<IWebRequest> WaitForRequestAsync(Func<Request, bool> predicate, WaitForOptions options = null);
+        Task<IWebRequest> WaitForRequestAsync(Func<IRequest, bool> predicate, WaitForOptions options = null);
         Task<CookieParam[]> GetCookiesAsync(params string[] urls);
         Task CloseAsync(PageCloseOptions options = null);
     }

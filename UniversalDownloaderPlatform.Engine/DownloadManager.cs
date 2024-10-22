@@ -56,12 +56,14 @@ namespace UniversalDownloaderPlatform.Engine
                             if (!_urlChecker.IsValidUrl(entry.Url))
                             {
                                 _logger.Error($"Invalid url: {entry.Url}");
+                                OnFileDownloaded(new FileDownloadedEventArgs(entry.Url, crawledUrls.Count, false, "Invalid url"));
                                 return;
                             }
 
                             if (_urlChecker.IsBlacklistedUrl(entry.Url))
                             {
                                 _logger.Warn($"Url is blacklisted: {entry.Url}");
+                                OnFileDownloaded(new FileDownloadedEventArgs(entry.Url, crawledUrls.Count, false, "Url is blacklisted"));
                                 return;
                             }
 

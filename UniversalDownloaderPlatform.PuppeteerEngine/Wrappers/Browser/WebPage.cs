@@ -12,9 +12,9 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine.Wrappers.Browser
     /// </summary>
     public sealed class WebPage : IWebPage
     {
-        private readonly Page _page;
+        private readonly IPage _page;
         private bool _configured;
-        public WebPage(Page page)
+        public WebPage(IPage page)
         {
             _page = page ?? throw new ArgumentNullException(nameof(page));
             _configured = false;
@@ -32,7 +32,7 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine.Wrappers.Browser
             if (!timeout.HasValue)
                 timeout = 60000;
 
-            Response response = await _page.GoToAsync(url, timeout, waitUntil);
+            IResponse response = await _page.GoToAsync(url, timeout, waitUntil);
             IWebResponse webResponse = new WebResponse(response);
             return webResponse;
         }
@@ -47,10 +47,10 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine.Wrappers.Browser
             return await _page.GetContentAsync();
         }
 
-        public async Task<IWebRequest> WaitForRequestAsync(Func<Request, bool> predicate, WaitForOptions options = null)
+        public async Task<IWebRequest> WaitForRequestAsync(Func<IRequest, bool> predicate, WaitForOptions options = null)
         {
             await ConfigurePage();
-            Request request = await _page.WaitForRequestAsync(predicate, options);
+            IRequest request = await _page.WaitForRequestAsync(predicate, options);
             IWebRequest webRequest = new WebRequest(request);
             return webRequest;
         }

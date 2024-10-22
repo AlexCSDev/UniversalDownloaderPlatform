@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Net;
 using System.Threading.Tasks;
 using PuppeteerSharp;
@@ -12,8 +12,8 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine.Wrappers.Browser
     /// </summary>
     public sealed class WebResponse : IWebResponse
     {
-        private readonly Response _response;
-        public WebResponse(Response response)
+        private readonly IResponse _response;
+        public WebResponse(IResponse response)
         {
             _response = response ?? throw new ArgumentNullException(nameof(response));
         }

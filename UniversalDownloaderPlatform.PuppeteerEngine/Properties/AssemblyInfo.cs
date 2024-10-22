@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("XIV Mod Archive Downloader Puppeteer Cookie Retrieval Plugin")]
+[assembly: AssemblyTitle("Universal Downloader Platform Puppeteer Cookie Retrieval Plugin")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("XIV Mod Archive Downloader")]
-[assembly: AssemblyCopyright("Copyright 2023 Aleksey Tsutsey & Contributors")]
+[assembly: AssemblyProduct("Universal Downloader Platform")]
+[assembly: AssemblyCopyright("Copyright 2023-2024 Aleksey Tsutsey & Contributors")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

@@ -43,15 +43,15 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
 
             if (_settings.RemoteBrowserAddress != null)
             {
-                _puppeteerEngine = new PuppeteerEngine(_settings.RemoteBrowserAddress);
+                _puppeteerEngine = new PuppeteerEngine(_settings.RemoteBrowserAddress) { UserAgent = settings.UserAgent };
                 _isHeadlessBrowser = true;
                 _isRemoteBrowser = true;
             }
             else
             {
-                _isHeadlessBrowser = _settings.IsHeadlessBrowser;
+                _isHeadlessBrowser = false;
                 _isRemoteBrowser = false;
-                _puppeteerEngine = new PuppeteerEngine(_isHeadlessBrowser, _settings.ProxyServerAddress);
+                _puppeteerEngine = new PuppeteerEngine(_isHeadlessBrowser, _settings.ProxyServerAddress) { UserAgent = settings.UserAgent };
             }
 
             return Task.CompletedTask;

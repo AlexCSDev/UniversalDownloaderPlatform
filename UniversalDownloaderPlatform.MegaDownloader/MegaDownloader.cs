@@ -140,7 +140,7 @@ namespace UniversalDownloaderPlatform.MegaDownloader
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error($"Error while downloading {path}: {ex}", ex);
+                    _logger.Error(ex, $"Error while downloading {path}: {ex}");
                 }
             }
         }
@@ -261,22 +261,22 @@ namespace UniversalDownloaderPlatform.MegaDownloader
             switch (level)
             {
                 case LogMessageLevel.Trace:
-                    _logger.Trace(message, exception);
+                    _logger.Trace(exception, message);
                     break;
                 case LogMessageLevel.Debug:
-                    _logger.Debug(message, exception);
+                    _logger.Debug(exception, message);
                     break;
                 case LogMessageLevel.Fatal:
-                    _logger.Fatal(message, exception);
+                    _logger.Fatal(exception, message);
                     break;
                 case LogMessageLevel.Error:
-                    _logger.Error(message, exception);
+                    _logger.Error(exception, message);
                     break;
                 case LogMessageLevel.Warning:
-                    _logger.Warn(message, exception);
+                    _logger.Warn(exception, message);
                     break;
                 case LogMessageLevel.Information:
-                    _logger.Info(message, exception);
+                    _logger.Info(exception, message);
                     break;
             }
         }

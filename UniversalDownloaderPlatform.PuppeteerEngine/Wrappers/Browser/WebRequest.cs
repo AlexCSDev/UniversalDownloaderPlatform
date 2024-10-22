@@ -10,9 +10,9 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine.Wrappers.Browser
     /// </summary>
     public sealed class WebRequest : IWebRequest
     {
-        private readonly Request _request;
+        private readonly IRequest _request;
 
-        public WebRequest(Request request)
+        public WebRequest(IRequest request)
         {
             _request = request ?? throw new ArgumentNullException(nameof(request));
         }

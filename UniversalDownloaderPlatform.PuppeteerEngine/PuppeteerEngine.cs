@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -17,13 +17,26 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
 {
     internal class PuppeteerEngine : IPuppeteerEngine, IDisposable
     {
-        private Browser _browser;
+        private IBrowser _browser;
         private IWebBrowser _browserWrapper;
 
         private bool _headless;
         private Uri _remoteBrowserAddress;
         private string _proxyServerAddress;
         private readonly Logger _logger = LogManager.GetCurrentClassLogger();
+
+        private string _userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
+        public string UserAgent
+        {
+            get => _userAgent;
+            init
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                    return;
+
+                _userAgent = value;
+            }
+        }
 
         public bool IsHeadless
         {
@@ -132,11 +145,11 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
             try
             {
                 _logger.Debug("Downloading browser");
-                await new BrowserFetcher().DownloadAsync(BrowserFetcher.DefaultRevision);
+                await new BrowserFetcher().DownloadAsync();
                 _logger.Debug("Launching browser");
 
                 List<string> browserArguments = new List<string>();
-                browserArguments.Add("--user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.0 Safari/537.36\"");
+                browserArguments.Add($"--user-agent=\"{_userAgent}\"");
                 
                 if(!string.IsNullOrWhiteSpace(_proxyServerAddress)) 
                     browserArguments.Add($"--proxy-server=\"{_proxyServerAddress}\"");
@@ -154,7 +167,7 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
                 });
 
                 _logger.Debug("Opening new page");
-                Page descriptionPage = await _browser.NewPageAsync();
+                IPage descriptionPage = await _browser.NewPageAsync();
                 await descriptionPage.SetContentAsync("<h1>This is a browser of universal downloader platform</h1>");
 
                 _logger.Debug("Creating IWebBrowser");
@@ -184,7 +197,7 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
                 });
 
                 _logger.Debug("Opening new page");
-                Page descriptionPage = await _browser.NewPageAsync();
+                IPage descriptionPage = await _browser.NewPageAsync();
                 await descriptionPage.SetContentAsync("<h1>This is a browser of universal downloader platform</h1>");
 
                 _logger.Debug("Creating IWebBrowser");
