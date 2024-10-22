@@ -9,7 +9,7 @@
     <PackageReference Include="Ninject" Version="3.3.6" />
     <PackageReference Include="ninject.extensions.conventions" Version="3.3.0" />
     <PackageReference Include="NLog" Version="5.3.4" />
-    <PackageReference Include="PuppeteerSharp" Version="20.0.0" />
+    <PackageReference Include="PuppeteerSharp" Version="20.0.2" />
   </ItemGroup>
 
   <ItemGroup>

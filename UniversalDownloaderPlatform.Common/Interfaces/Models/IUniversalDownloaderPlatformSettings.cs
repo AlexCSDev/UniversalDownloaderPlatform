@@ -18,7 +18,7 @@ namespace UniversalDownloaderPlatform.Common.Interfaces.Models
         CookieContainer CookieContainer { get; set; }
 
         /// <summary>
-        /// User agent string, if set to null ICookieRetriever will be called to set it
+        /// User agent string, if set to null will be retrieved from ICookieRetriever
         /// </summary>
         string UserAgent { get; set; }
 

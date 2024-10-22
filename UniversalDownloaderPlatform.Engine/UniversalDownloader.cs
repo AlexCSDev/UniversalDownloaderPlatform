@@ -138,10 +138,13 @@ namespace UniversalDownloaderPlatform.Engine
                 throw new Exception("Unable to retrieve cookies");
             }
 
-            settings.UserAgent = await _cookieRetriever.GetUserAgent();
             if (string.IsNullOrWhiteSpace(settings.UserAgent))
             {
-                throw new Exception("Unable to retrieve user agent");
+                settings.UserAgent = await _cookieRetriever.GetUserAgent();
+                if (string.IsNullOrWhiteSpace(settings.UserAgent))
+                {
+                    throw new Exception("Unable to retrieve user agent");
+                }
             }
 
             //TODO: DO NOT DISPOSE

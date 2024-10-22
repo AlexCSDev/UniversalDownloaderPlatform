@@ -25,6 +25,19 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
         private string _proxyServerAddress;
         private readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
+        private string _userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
+        public string UserAgent
+        {
+            get => _userAgent;
+            init
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                    return;
+
+                _userAgent = value;
+            }
+        }
+
         public bool IsHeadless
         {
             get { return _headless; }
@@ -136,7 +149,7 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
                 _logger.Debug("Launching browser");
 
                 List<string> browserArguments = new List<string>();
-                browserArguments.Add("--user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36\"");
+                browserArguments.Add($"--user-agent=\"{_userAgent}\"");
                 
                 if(!string.IsNullOrWhiteSpace(_proxyServerAddress)) 
                     browserArguments.Add($"--proxy-server=\"{_proxyServerAddress}\"");
