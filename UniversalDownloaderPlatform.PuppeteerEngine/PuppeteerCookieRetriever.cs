@@ -95,9 +95,12 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
                         page = await browser.NewPageAsync();
                     }
 
-                    await page.GoToAsync(_settings.LoginPageAddress);
+                    //no await is done on purpose because otherwise WaitForRequestAsync misses tons of events sometimes including _settings.LoginCheckAddress load
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+                    page.GoToAsync(_settings.LoginPageAddress, null);
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
-                    await page.WaitForRequestAsync(request => request.Url.Contains(_settings.LoginCheckAddress));
+                    await page.WaitForRequestAsync(request => { return request.Url.Contains(_settings.LoginCheckAddress); });
                 }
                 else
                 {
