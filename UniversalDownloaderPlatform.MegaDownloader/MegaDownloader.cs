@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using CG.Web.MegaApiClient;
 using NLog;
@@ -42,13 +43,33 @@ namespace UniversalDownloaderPlatform.MegaDownloader
         public MegaDownloader(MegaCredentials credentials = null)
         {
             _client = new MegaApiClient();
-            if (credentials != null)
+
+            try
             {
-                _client.Login(credentials.Email, credentials.Password);
+                if (credentials != null)
+                {
+                    _client.Login(credentials.Email, credentials.Password);
+                }
+                else
+                {
+                    _client.LoginAnonymous();
+                }
             }
-            else
+            catch(HttpRequestException reqEx)
             {
-                _client.LoginAnonymous();
+                if(reqEx.StatusCode == System.Net.HttpStatusCode.PaymentRequired)
+                {
+                    _logger.Fatal("[MEGA] Mega.nz plugin cannot log in using supplied credentials. Please check supplied username and password, then sign in into your account using your browser and you will be able to download files for the next 24 hours." +
+                        "\r\nPlease refer to this issue for more information: https://github.com/AlexCSDev/PatreonDownloader/issues/257" +
+                        "\r\nYou can ignore this message if you do not plan to download files from mega.nz.");
+                    return;
+                }
+
+                _logger.Fatal(reqEx, $"[MEGA] Mega.nz plugin cannot log in using supplied credentials, mega.nz files WILL NOT BE DOWNLOADED. Reason: {reqEx}");
+            }
+            catch(Exception ex)
+            {
+                _logger.Fatal(ex, $"[MEGA] Mega.nz plugin cannot log in using supplied credentials, mega.nz files WILL NOT BE DOWNLOADED. Reason: {ex}");
             }
         }
 
@@ -60,6 +81,9 @@ namespace UniversalDownloaderPlatform.MegaDownloader
 
         public async Task DownloadUrlAsync(ICrawledUrl crawledUrl, string downloadPath, FileExistsAction fileExistsAction)
         {
+            if(_client == null || !_client.IsLoggedIn)
+                throw new UniversalDownloaderPlatform.Common.Exceptions.DownloadException($"{crawledUrl.Url} cannot be downloaded because mega plugin is not logged in or was unable to initialize.");
+
             _logger.Debug($"[MEGA] Staring downloading {crawledUrl.Url}");
 
             Uri uri = new Uri(crawledUrl.Url);
@@ -288,7 +312,11 @@ namespace UniversalDownloaderPlatform.MegaDownloader
 
         private void ReleaseUnmanagedResources()
         {
-            _client.Logout();
+            if (_client == null)
+                return;
+
+            if(_client.IsLoggedIn)
+                _client.Logout();
             _client = null;
         }
 
