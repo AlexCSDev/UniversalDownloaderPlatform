@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Universal Downloader Platform")]
-[assembly: AssemblyCopyright("Copyright 2023-2024 Aleksey Tsutsey & Contributors")]
+[assembly: AssemblyCopyright("Copyright 2023-2025 Aleksey Tsutsey & Contributors")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
