@@ -142,6 +142,7 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
                 catch (Exception ex)
                 {
                     _logger.Fatal($"Login error: {ex.Message}");
+                    _logger.Fatal($"Full login exception: {ex}");
                     return null;
                 }
 
@@ -158,9 +159,18 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
                 {
                     foreach (CookieParam browserCookie in browserCookies)
                     {
-                        _logger.Debug($"Adding cookie: {browserCookie.Name}");
-                        Cookie cookie = new Cookie(browserCookie.Name, browserCookie.Value, browserCookie.Path, browserCookie.Domain);
-                        cookieContainer.Add(cookie);
+                        try
+                        {
+                            _logger.Debug($"Adding cookie: {browserCookie.Name}");
+                            // Sanitize cookie value to remove characters that are not valid in .NET cookie values
+                            string sanitizedValue = System.Net.WebUtility.UrlEncode(browserCookie.Value);
+                            Cookie cookie = new Cookie(browserCookie.Name, sanitizedValue, browserCookie.Path, browserCookie.Domain);
+                            cookieContainer.Add(cookie);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.Warn($"Failed to add cookie {browserCookie.Name}: {ex.Message}. Skipping this cookie.");
+                        }
                     }
                 }
                 else

@@ -155,6 +155,8 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
                     browserArguments.Add($"--proxy-server=\"{_proxyServerAddress}\"");
 
                 browserArguments.Add("--disable-blink-features=AutomationControlled");
+                browserArguments.Add("--no-sandbox");
+                browserArguments.Add("--disable-dev-shm-usage");
 
                 _browser = await PuppeteerSharp.Puppeteer.LaunchAsync(new LaunchOptions
                 {
