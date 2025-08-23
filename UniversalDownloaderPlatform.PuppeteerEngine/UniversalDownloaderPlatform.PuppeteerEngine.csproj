@@ -8,8 +8,8 @@
   <ItemGroup>
     <PackageReference Include="Ninject" Version="3.3.6" />
     <PackageReference Include="ninject.extensions.conventions" Version="3.3.0" />
-    <PackageReference Include="NLog" Version="5.3.4" />
-    <PackageReference Include="PuppeteerSharp" Version="20.0.2" />
+    <PackageReference Include="NLog" Version="6.0.3" />
+    <PackageReference Include="PuppeteerSharp" Version="20.2.2" />
   </ItemGroup>
 
   <ItemGroup>

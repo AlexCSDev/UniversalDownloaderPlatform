@@ -7,9 +7,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Google.Apis.Drive.v3" Version="1.68.0.3533" />
-    <PackageReference Include="MimeTypesMap" Version="1.0.8" />
-    <PackageReference Include="NLog" Version="5.3.4" />
+    <PackageReference Include="Google.Apis.Drive.v3" Version="1.70.0.3856" />
+    <PackageReference Include="MimeTypesMap" Version="1.0.9" />
+    <PackageReference Include="NLog" Version="6.0.3" />
   </ItemGroup>
 
   <ItemGroup>
