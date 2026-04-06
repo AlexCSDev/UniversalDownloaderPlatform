@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using PuppeteerSharp;
+using PuppeteerSharp.Input;
 using UniversalDownloaderPlatform.PuppeteerEngine.Interfaces.Wrappers.Browser;
 
 namespace UniversalDownloaderPlatform.PuppeteerEngine.Wrappers.Browser
@@ -53,6 +54,36 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine.Wrappers.Browser
             IRequest request = await _page.WaitForRequestAsync(predicate, options);
             IWebRequest webRequest = new WebRequest(request);
             return webRequest;
+        }
+
+        public async Task<IWebResponse> WaitForResponseAsync(Func<IResponse, bool> predicate, WaitForOptions options = null)
+        {
+            await ConfigurePage();
+            IResponse response = await _page.WaitForResponseAsync(predicate, options);
+            IWebResponse webResponse = new WebResponse(response);
+            return webResponse;
+        }
+
+        public async Task WaitForNetworkIdleAsync(WaitForNetworkIdleOptions options = null)
+        {
+            await ConfigurePage();
+            await _page.WaitForNetworkIdleAsync(options);
+        }
+
+        public async Task WaitForSelectorAsync(string selector, WaitForSelectorOptions options = null)
+        {
+            await ConfigurePage();
+            await _page.WaitForSelectorAsync(selector, options);
+        }
+
+        public async Task TypeAsync(string selector, string text, TypeOptions options = null)
+        {
+            await _page.TypeAsync(selector, text, options);
+        }
+
+        public async Task ClickAsync(string selector, ClickOptions options = null)
+        {
+            await _page.ClickAsync(selector, options);
         }
 
         public async Task<CookieParam[]> GetCookiesAsync(params string[] urls)

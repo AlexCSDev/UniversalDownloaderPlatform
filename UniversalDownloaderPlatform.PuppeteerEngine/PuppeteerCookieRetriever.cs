@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using NLog;
 using UniversalDownloaderPlatform.Common.Interfaces;
 using PuppeteerSharp;
+using PuppeteerSharp.Input;
 using UniversalDownloaderPlatform.PuppeteerEngine.Interfaces;
 using UniversalDownloaderPlatform.PuppeteerEngine.Interfaces.Wrappers.Browser;
 using UniversalDownloaderPlatform.Common.Interfaces.Models;
@@ -23,7 +24,7 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
         private IPuppeteerSettings _settings;
         private bool _isHeadlessBrowser;
         private bool _isRemoteBrowser;
-
+        private bool _shouldTryAutoLogin;
 
         /// <summary>
         /// Create new instance of PuppeteerCookieRetriever
@@ -40,6 +41,7 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
         public Task BeforeStart(IUniversalDownloaderPlatformSettings settings)
         {
             _settings = settings as IPuppeteerSettings;
+            _shouldTryAutoLogin = !string.IsNullOrWhiteSpace(_settings.LoginEmail) && !string.IsNullOrWhiteSpace(_settings.LoginPassword);
 
             if (_settings.RemoteBrowserAddress != null)
             {
@@ -83,12 +85,12 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
                 if (!await IsLoggedIn(response))
                 {
                     _logger.Debug("We are NOT logged in, opening login page");
-                    if (_isRemoteBrowser)
+                    if (_isRemoteBrowser && !_shouldTryAutoLogin)
                     {
                         await page.CloseAsync();
                         throw new Exception("You are not logged in into your account in remote browser. Please login and restart application.");
                     }
-                    if (_puppeteerEngine.IsHeadless)
+                    if (_puppeteerEngine.IsHeadless && !_shouldTryAutoLogin)
                     {
                         _logger.Debug("Puppeteer is in headless mode, restarting in full mode");
                         browser = await RestartBrowser(false);
@@ -100,7 +102,16 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
                     page.GoToAsync(_settings.LoginPageAddress, null);
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
-                    await page.WaitForRequestAsync(request => { return request.Url.Contains(_settings.LoginCheckAddress); });
+                    if (_shouldTryAutoLogin)
+                    {
+                        _logger.Debug("Credentials were supplied, attempting automatic Patreon login");
+                        await TryAutoLogin(page);
+                    }
+                    else
+                    {
+                        _logger.Debug("Waiting for user to log in Patreon manually");
+                        await page.WaitForRequestAsync(request => { return request.Url.Contains(_settings.LoginCheckAddress); });
+                    }
                 }
                 else
                 {
@@ -116,6 +127,93 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
             } while (!loggedIn);
 
             await page.CloseAsync();
+        }
+
+        private async Task TryAutoLogin(IWebPage page)
+        {
+            try
+            {
+                await page.WaitForNetworkIdleAsync(new WaitForNetworkIdleOptions()
+                {
+                    // The hanging requests are:
+                    // https://accounts.google.com/gsi/client
+                    // https://www.facebook.com/x/oauth/status
+                    // https://www.google.com/recaptcha/enterprise/webworker.js
+                    Concurrency = 3,
+                    IdleTime = 1000,
+                    Timeout = 10000,
+                });
+            }
+            catch (Exception ex) when (ex is WaitTaskTimeoutException || ex is TimeoutException) // In case there are other hanging requests (they seem to appear randomly)
+            {
+                _logger.Debug("Waiting for network idle timeout; proceed anyway and hope for the best");
+            }
+
+            IWebResponse response = await EnterAndSubmit(page, "input[aria-label=\"Email\"]", _settings.LoginEmail);
+            if ((await response.TextAsync()).Contains("\"next_auth_step\":\"signup\""))
+            {
+                throw new Exception("There does not exist an account with the provided email");
+            }
+            await EnterAndSubmit(page, "input[aria-label=\"Password\"]", _settings.LoginPassword);
+
+            // Not sure why this is needed, but otherwise GoToAsync will throw PuppeteerSharp.NavigationException: net::ERR_ABORTED
+            await page.CloseAsync();
+        }
+
+        private async Task<IWebResponse> EnterAndSubmit(IWebPage page, string selector, string text)
+        {
+            const string submitSelector = "button[type=\"submit\"][aria-disabled=\"false\"]";
+
+            await page.WaitForSelectorAsync(selector, new WaitForSelectorOptions() { Timeout = 10000 });
+            _logger.Debug($"Found {selector}, entering information");
+            await Task.Delay(300);
+
+            int retry;
+            for (retry = 0; retry < 5; retry++)
+            {
+                await page.TypeAsync(selector, text, new TypeOptions() { Delay = 50 });
+                try
+                {
+                    await page.WaitForSelectorAsync(submitSelector, new WaitForSelectorOptions() { Timeout = 3000 });
+                }
+                catch (Exception ex) when (ex is WaitTaskTimeoutException || ex is TimeoutException)
+                {
+                    _logger.Debug($"Submit button did not appear; retrying {retry}/5");
+                    await page.ClickAsync(selector, new ClickOptions()
+                    {
+                        Count = 3, // hopefully select all text in the field
+                        Delay = 50,
+                        OffSet = new Offset(10, 10)
+                    });
+                    continue;
+                }
+                break;
+            }
+            if (retry == 5)
+            {
+                throw new Exception("Cannot find the submit button after 5 tries");
+            }
+
+            await Task.Delay(300);
+            await page.ClickAsync(submitSelector);
+
+            IWebResponse authResponse = await page.WaitForResponseAsync(
+                response => { return response.Url.Contains(_settings.AuthAddress); },
+                new WaitForOptions() { Timeout = 10000 }
+            );
+            switch (authResponse.Status)
+            {
+                case HttpStatusCode.OK:
+                    return authResponse;
+                case HttpStatusCode.BadRequest:
+                    throw new Exception($"Auth returned non-OK code: {authResponse.Status}; you probably provided an invalid email");
+                case HttpStatusCode.TooManyRequests:
+                    throw new Exception($"Auth returned non-OK code: {authResponse.Status}; you probably tried logging in for too many times");
+                case HttpStatusCode.Forbidden:
+                    throw new Exception($"Auth returned non-OK code: {authResponse.Status}; you either provided a wrong password or are blocked");
+                default:
+                    throw new Exception($"Auth returned non-OK code: {authResponse.Status}");
+            }
         }
 
         /// <summary>

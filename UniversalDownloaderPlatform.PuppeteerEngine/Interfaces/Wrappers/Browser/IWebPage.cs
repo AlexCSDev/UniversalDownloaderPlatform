@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using PuppeteerSharp;
+using PuppeteerSharp.Input;
 
 namespace UniversalDownloaderPlatform.PuppeteerEngine.Interfaces.Wrappers.Browser
 {
@@ -15,6 +16,11 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine.Interfaces.Wrappers.Browse
         Task SetUserAgentAsync(string userAgent);
         Task<string> GetContentAsync();
         Task<IWebRequest> WaitForRequestAsync(Func<IRequest, bool> predicate, WaitForOptions options = null);
+        Task<IWebResponse> WaitForResponseAsync(Func<IResponse, bool> predicate, WaitForOptions options = null);
+        Task WaitForNetworkIdleAsync(WaitForNetworkIdleOptions options = null);
+        Task WaitForSelectorAsync(string selector, WaitForSelectorOptions options = null);
+        Task TypeAsync(string selector, string text, TypeOptions options = null);
+        Task ClickAsync(string selector, ClickOptions options = null);
         Task<CookieParam[]> GetCookiesAsync(params string[] urls);
         Task CloseAsync(PageCloseOptions options = null);
     }
