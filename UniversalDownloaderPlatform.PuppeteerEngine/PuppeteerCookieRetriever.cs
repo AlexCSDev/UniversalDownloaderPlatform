@@ -49,7 +49,7 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine
             }
             else
             {
-                _isHeadlessBrowser = false;
+                _isHeadlessBrowser = _settings.IsHeadlessBrowser;
                 _isRemoteBrowser = false;
                 _puppeteerEngine = new PuppeteerEngine(_isHeadlessBrowser, _settings.ProxyServerAddress) { UserAgent = settings.UserAgent };
             }
