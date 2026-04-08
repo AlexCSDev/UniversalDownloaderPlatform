@@ -21,6 +21,10 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine.Interfaces
         /// </summary>
         public string CaptchaCookieRetrievalAddress { get; }
         /// <summary>
+        /// Address of API request for checking account existence used by Patreon login page. Finishing this request signifies being ready to enter password.
+        /// </summary>
+        public string AuthAddress { get; }
+        /// <summary>
         /// Address of the remote browser, if not set internal browser will be used
         /// </summary>
         public Uri RemoteBrowserAddress { get; init; }
@@ -32,5 +36,13 @@ namespace UniversalDownloaderPlatform.PuppeteerEngine.Interfaces
         /// Proxy server address
         /// </summary>
         public string ProxyServerAddress { get; init; }
+        /// <summary>
+        /// Email used for optional automatic login
+        /// </summary>
+        public string LoginEmail { get; init; }
+        /// <summary>
+        /// Password used for optional automatic login
+        /// </summary>
+        public string LoginPassword { get; init; }
     }
 }
