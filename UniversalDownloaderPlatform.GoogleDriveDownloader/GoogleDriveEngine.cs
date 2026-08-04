@@ -97,17 +97,6 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
             {
                 long? remoteFileSize = fileResource.Size;
 
-                if (System.IO.File.Exists(path))
-                {
-                    if (!FileExistsActionHelper.DoFileExistsActionBeforeDownload(path, remoteFileSize ?? 0, isCheckRemoteFileSize, fileExistsAction, LoggingFunction))
-                        return;
-                }
-
-                if (!Directory.Exists(path))
-                {
-                    Directory.CreateDirectory(new FileInfo(path).DirectoryName);
-                }
-
                 //todo: allow choosing which format to use: pdf or office
                 bool isGoogleDocument = false;
                 string mimeType = null;
@@ -142,6 +131,19 @@ namespace UniversalDownloaderPlatform.GoogleDriveDownloader
                     }
 
                     isGoogleDocument = true;
+                }
+
+                string existingPath = FileExistsActionHelper.ResolveExistingFilePath(path);
+                if (existingPath != null)
+                {
+                    if (!FileExistsActionHelper.DoFileExistsActionBeforeDownload(existingPath, path, remoteFileSize ?? 0, isCheckRemoteFileSize, fileExistsAction, LoggingFunction))
+                        return;
+                }
+
+                string directoryPath = new FileInfo(path).DirectoryName;
+                if (!string.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath))
+                {
+                    Directory.CreateDirectory(directoryPath);
                 }
 
                 using (FileStream file = new FileStream(temporaryFilePath, FileMode.Create, FileAccess.Write, FileShare.None))

@@ -15,6 +15,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UniversalDownloaderPlatform
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UniversalDownloaderPlatform.PuppeteerEngine", "UniversalDownloaderPlatform.PuppeteerEngine\UniversalDownloaderPlatform.PuppeteerEngine.csproj", "{92153E73-466A-4620-B7B3-2082E061B1DB}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UniversalDownloaderPlatform.Common.Tests", "UniversalDownloaderPlatform.Common.Tests\UniversalDownloaderPlatform.Common.Tests.csproj", "{5A414D51-D4A3-4E3C-A1B3-9E069DA44533}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,10 @@ Global
 		{92153E73-466A-4620-B7B3-2082E061B1DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{92153E73-466A-4620-B7B3-2082E061B1DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{92153E73-466A-4620-B7B3-2082E061B1DB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5A414D51-D4A3-4E3C-A1B3-9E069DA44533}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5A414D51-D4A3-4E3C-A1B3-9E069DA44533}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5A414D51-D4A3-4E3C-A1B3-9E069DA44533}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5A414D51-D4A3-4E3C-A1B3-9E069DA44533}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
