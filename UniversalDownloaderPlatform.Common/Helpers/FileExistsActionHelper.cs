@@ -12,20 +12,81 @@ namespace UniversalDownloaderPlatform.Common.Helpers
     public static class FileExistsActionHelper
     {
         /// <summary>
-        /// Performs all required actions based on the FileExistsAction value. Should be called before downloading the file when the file already exists on the disk.
+        /// Resolves an already existing file path for the requested output path.
+        /// Returns the exact path when it exists, otherwise looks for a file with the same basename and a different extension in the same directory.
+        /// Returns null when no matching file exists.
         /// </summary>
-        /// <param name="path">The path to the file already existing on the disk</param>
-        /// <param name="remoteFileSize">The size of the remote file (supply -1 if not available)</param>
+        /// <param name="path">Requested output path</param>
+        /// <returns>Existing file path or null when not found</returns>
+        public static string ResolveExistingFilePath(string path)
+        {
+            if (File.Exists(path))
+                return path;
+
+            try
+            {
+                string directoryPath = Path.GetDirectoryName(path);
+                if (string.IsNullOrEmpty(directoryPath))
+                    directoryPath = Directory.GetCurrentDirectory();
+                if (!Directory.Exists(directoryPath))
+                    return null;
+
+                string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(path);
+                if (string.IsNullOrEmpty(fileNameWithoutExtension))
+                    return null;
+
+                string requestedExtension = Path.GetExtension(path);
+                // Enumerate all files and compare basenames in code so characters like * or ?
+                // in the requested name are not treated as filesystem wildcards.
+                foreach (string filePath in Directory.EnumerateFiles(directoryPath))
+                {
+                    if (string.Equals(Path.GetFileNameWithoutExtension(filePath), fileNameWithoutExtension, StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(Path.GetExtension(filePath), requestedExtension, StringComparison.OrdinalIgnoreCase))
+                        return filePath;
+                }
+            }
+            catch (Exception ex) when (ex is IOException
+                or UnauthorizedAccessException
+                or ArgumentException
+                or NotSupportedException
+                or System.Security.SecurityException)
+            {
+                return null;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Performs all required actions based on the FileExistsAction value. Should be called before downloading the file when the file already exists on the disk.
+        /// When <paramref name="existingPath"/> is a same-basename converted equivalent of <paramref name="requestedPath"/>
+        /// (different extension), the download is skipped unless <paramref name="fileExistsAction"/> is <see cref="FileExistsAction.AlwaysReplace"/>,
+        /// because remote size/hash comparison is not meaningful across formats.
+        /// </summary>
+        /// <param name="existingPath">The path to the file already existing on the disk</param>
+        /// <param name="requestedPath">The originally requested output path</param>
+        /// <param name="remoteFileSize">The size of the remote file. Values less than or equal to 0 are treated as unavailable/unknown.</param>
         /// <param name="isCheckRemoteFileSize">Should the remote file size check be performed at all</param>
         /// <param name="fileExistsAction">Action to perform</param>
         /// <param name="loggingFunction">Logging function</param>
         /// <returns>True if should continue the download, false if should stop download process for the file</returns>
-        public static bool DoFileExistsActionBeforeDownload(string path,
+        public static bool DoFileExistsActionBeforeDownload(string existingPath,
+            string requestedPath,
             long remoteFileSize,
             bool isCheckRemoteFileSize,
             FileExistsAction fileExistsAction,
             Action<LogMessageLevel, string, Exception> loggingFunction)
         {
+            bool isConvertedEquivalent = !string.Equals(existingPath, requestedPath, StringComparison.OrdinalIgnoreCase);
+            if (isConvertedEquivalent)
+            {
+                if (fileExistsAction == FileExistsAction.AlwaysReplace)
+                    return true;
+
+                loggingFunction(LogMessageLevel.Warning, $"Converted file {existingPath} already exists for requested path {requestedPath}, download will be skipped.", null);
+                return false;
+            }
+
             if (fileExistsAction != FileExistsAction.AlwaysReplace)
             {
                 bool isFilesIdentical = false;
@@ -33,32 +94,31 @@ namespace UniversalDownloaderPlatform.Common.Helpers
                 {
                     if (remoteFileSize > 0)
                     {
-                        loggingFunction(LogMessageLevel.Debug, $"File {path} exists, size will be checked", null);
+                        loggingFunction(LogMessageLevel.Debug, $"File {existingPath} exists, size will be checked", null);
                         try
                         {
-                            if (new FileInfo(path).Length != remoteFileSize)
+                            if (new FileInfo(existingPath).Length != remoteFileSize)
                             {
-                                loggingFunction(LogMessageLevel.Warning, $"Local and remote file sizes does not match, file {path} will be redownloaded.", null);
+                                loggingFunction(LogMessageLevel.Warning, $"Local and remote file sizes do not match, file {existingPath} will be redownloaded.", null);
                             }
                             else
                             {
-                                loggingFunction(LogMessageLevel.Debug, $"File size for {path} matches", null);
+                                loggingFunction(LogMessageLevel.Debug, $"File size for {existingPath} matches", null);
                                 isFilesIdentical = true;
                             }
                         }
                         catch (Exception ex)
                         {
                             loggingFunction(LogMessageLevel.Error, $"Error during file comparison: {ex}", ex);
-                            isFilesIdentical = true; //we assume that local file is identical if we can't check remote file size
+                            // Leave isFilesIdentical false so ReplaceIfDifferent/BackupIfDifferent can fall back to after-download hash comparison.
                         }
                     }
-                    else
-                        isFilesIdentical = true; //assume that 0kb files and failed checks are always identical
+                    // remoteFileSize <= 0 means unavailable/unknown; do not assume identity so after-download hash comparison can decide.
                 }
 
                 if (isFilesIdentical || fileExistsAction == FileExistsAction.KeepExisting)
                 {
-                    loggingFunction(LogMessageLevel.Warning, $"File {path} already exists, will be skipped because of identical size to the remote file or because of file exists setting being set to keep existing file even on different remote size.", null);
+                    loggingFunction(LogMessageLevel.Warning, $"File {existingPath} already exists, will be skipped because of identical size to the remote file or because of file exists setting being set to keep existing file even on different remote size.", null);
                     return false;
                 }
             }

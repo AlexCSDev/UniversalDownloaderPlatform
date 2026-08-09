@@ -209,17 +209,19 @@ namespace UniversalDownloaderPlatform.MegaDownloader
 
             long remoteFileSize = nodeInfo.Size;
 
-            if (File.Exists(path))
+            string existingPath = FileExistsActionHelper.ResolveExistingFilePath(path);
+            if (existingPath != null)
             {
-                if (!FileExistsActionHelper.DoFileExistsActionBeforeDownload(path, remoteFileSize, _isCheckRemoteFileSize, fileExistsAction, LoggingFunction))
+                if (!FileExistsActionHelper.DoFileExistsActionBeforeDownload(existingPath, path, remoteFileSize, _isCheckRemoteFileSize, fileExistsAction, LoggingFunction))
                     return;
             }
 
             try
             {
                 //warning: returns '' in drive's root
-                if (!Directory.Exists(path))
-                    Directory.CreateDirectory(new FileInfo(path).DirectoryName);
+                string directoryPath = new FileInfo(path).DirectoryName;
+                if (!string.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath))
+                    Directory.CreateDirectory(directoryPath);
             }
             catch (Exception ex)
             {
